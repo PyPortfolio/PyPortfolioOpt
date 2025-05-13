@@ -1,0 +1,32 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "groupName": "github actions"
+    },
+    {
+      "packagePatterns": ["ubuntu"],
+      "managers": ["github-actions"],
+      "enabled": false
+    },
+    {
+      "matchUpdateTypes": ["patch"],
+      "enabled": true,
+      "minimumReleaseAge": "14",
+      // Check for updates on the 1st of the month between midnight and 4am
+      "schedule": ["* 0-4 1 * *"]
+    }
+  ],
+  "labels": ["dependencies"],
+  "dependencyDashboard": false,
+  "assigneesFromCodeOwners": true
+}
