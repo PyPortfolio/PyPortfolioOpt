@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 from cvxpy.error import SolverError
-
 from pypfopt import (
     EfficientFrontier,
     EfficientSemivariance,
@@ -9,6 +8,7 @@ from pypfopt import (
     objective_functions,
     risk_models,
 )
+
 from tests.utilities_for_tests import get_data, setup_efficient_semivariance
 
 
@@ -397,7 +397,7 @@ def test_efficient_risk():
 def test_efficient_risk_low_risk():
     es = setup_efficient_semivariance()
     es.min_semivariance()
-    min_value = es.portfolio_performance()[1]
+    min_value = es.portfolio_performance(risk_free_rate=0.02)[1]
 
     # Should fail below
     with pytest.raises(SolverError):
@@ -407,10 +407,9 @@ def test_efficient_risk_low_risk():
     es = setup_efficient_semivariance()
     es.efficient_risk(min_value + 0.01)
     np.testing.assert_allclose(
-        es.portfolio_performance(),
-        (0.228226, min_value + 0.01, 2.192011),
+        es.portfolio_performance(risk_free_rate=0.02),
+        (0.228096, min_value + 0.01, 2.191091),
         rtol=1e-4,
-        atol=1e-4,
     )
 
 

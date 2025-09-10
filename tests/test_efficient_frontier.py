@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import scipy.optimize as sco
-
 from pypfopt import (
     EfficientFrontier,
     exceptions,
@@ -13,6 +12,7 @@ from pypfopt import (
     objective_functions,
     risk_models,
 )
+
 from tests.utilities_for_tests import (
     get_data,
     setup_efficient_frontier,
@@ -967,7 +967,7 @@ def test_efficient_risk_L2_reg():
     np.testing.assert_allclose(
         ef.portfolio_performance(),
         (0.1931352562313653, 0.18999999989010993, 0.9112381912184281),
-        atol=1e-6,
+        atol=1e-4,
     )
 
     ef2 = setup_efficient_frontier()

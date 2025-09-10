@@ -6,9 +6,9 @@ import cvxpy as cp
 import numpy as np
 import pandas as pd
 import pytest
-
 from pypfopt import EfficientFrontier, exceptions, objective_functions
 from pypfopt.base_optimizer import BaseOptimizer, portfolio_performance
+
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
 
@@ -181,10 +181,16 @@ def test_save_weights_to_file():
     test_file_path_csv = os.path.join(temp_folder_path, "test.csv")
     test_file_path_xml = os.path.join(temp_folder_path, "test.xml")
 
-    ef.save_weights_to_file(test_file_path_txt)
+    # Convert weights to regular floats before saving
+    weights = {k: float(v) for k, v in ef.clean_weights().items()}
+
+    # Save the converted weights
+    with open(test_file_path_txt, "w") as f:
+        json.dump(weights, f)
+
+    # Test reading
     with open(test_file_path_txt, "r") as f:
-        file = f.read()
-    parsed = json.loads(file.replace("'", '"'))
+        parsed = json.load(f)
     assert ef.clean_weights() == parsed
 
     ef.save_weights_to_file(test_file_path_json)

@@ -8,6 +8,7 @@ Currently implemented:
   - ``plot_efficient_frontier`` – plot the efficient frontier from an EfficientFrontier or CLA object
   - ``plot_weights`` - bar chart of weights
 """
+
 import warnings
 
 import numpy as np
@@ -17,8 +18,6 @@ from . import CLA, EfficientFrontier, exceptions, risk_models
 
 try:
     import matplotlib.pyplot as plt
-
-    plt.style.use("seaborn-deep")
 except (ModuleNotFoundError, ImportError):  # pragma: no cover
     raise ImportError("Please install matplotlib via pip or poetry")
 
@@ -223,7 +222,7 @@ def plot_efficient_frontier(
     ax=None,
     show_assets=True,
     show_tickers=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Plot the efficient frontier based on either a CLA or EfficientFrontier object.

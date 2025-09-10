@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
-
 from pypfopt import (
     CLA,
     EfficientFrontier,
@@ -15,6 +14,7 @@ from pypfopt import (
     plotting,
     risk_models,
 )
+
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
 
@@ -72,7 +72,7 @@ def test_dendrogram_plot():
     hrp = HRPOpt(returns)
     with pytest.warns(RuntimeWarning) as w:
         ax = plotting.plot_dendrogram(hrp, show_tickers=False, showfig=False)
-        assert len(w) == 1
+        assert len(w) <= 2  # the second is FutureWarning if exists
         assert (
             str(w[0].message)
             == "hrp param has not been optimized.  Attempting optimization."

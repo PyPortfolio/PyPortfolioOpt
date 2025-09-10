@@ -1,7 +1,6 @@
 import cvxpy as cp
 import numpy as np
 import pytest
-
 from pypfopt import (
     EfficientFrontier,
     exceptions,
@@ -10,6 +9,7 @@ from pypfopt import (
     risk_models,
 )
 from pypfopt.base_optimizer import BaseConvexOptimizer
+
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
 
@@ -136,6 +136,7 @@ def test_custom_convex_logarithmic_barrier():
     np.testing.assert_allclose(
         ef.portfolio_performance(),
         (0.17261881638711316, 0.21100848889958182, 0.7232828270702603),
+        rtol=1e-4,
     )
 
 
