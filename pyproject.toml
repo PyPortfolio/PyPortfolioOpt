@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyportfolioopt"
-version = "1.5.6"
+version = "1.6.0"
 description = "Financial portfolio optimization in python"
 license = "MIT"
 authors = ["Robert Andrew Martin <martin.robertandrew@gmail.com>"]
@@ -37,7 +37,7 @@ pandas = ">=2.3.2"
 cvxpy = "^1.1.19"
 numpy = "^2.3.0"
 matplotlib = { version="^3.2.0", optional=true }
-scikit-learn = { version="^0.24.1", optional=true }
+scikit-learn = { version="^1.7.2", optional=true }
 scs = '>=3.2.7'  # Required to prevent `No module named 'distutils.msvccompiler'` error
 
 [tool.poetry.group.dev.dependencies]
