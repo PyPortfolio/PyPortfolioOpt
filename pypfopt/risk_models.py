@@ -148,8 +148,12 @@ def risk_matrix(prices, method="sample_cov", **kwargs):
 
 def sample_cov(prices, returns_data=False, frequency=252, log_returns=False, **kwargs):
     """
-    Calculate the annualised sample covariance matrix of (daily) asset returns.
+    Calculate the covariance matrix of asset returns from historical price data.
 
+    The covariance matrix is a fundamental input for portfolio optimization,
+    including risk parity strategies where the goal is to equalize the risk contribution of each asset.
+    It quantifies how the returns of different assets move together.
+    
     :param prices: adjusted closing prices of the asset, each row is a date
                    and each column is a ticker/id.
     :type prices: pd.DataFrame
@@ -162,7 +166,33 @@ def sample_cov(prices, returns_data=False, frequency=252, log_returns=False, **k
     :type log_returns: bool, defaults to False
     :return: annualised sample covariance matrix
     :rtype: pd.DataFrame
+    :param **kwargs : dict, Additional arguments passed to pandas.cov().
+
+    ----------
+    
+    Example
+    -------
+    >>> import pandas as pd
+    >>> prices = pd.DataFrame({
+    ...     'Asset_A': [100, 101, 102],
+    ...     'Asset_B': [200, 202, 201],
+    ...     'Asset_C': [50, 51, 52]
+    ... })
+    >>> cov_matrix = sample_cov(prices)
+    >>> print(cov_matrix)
+          Asset_A   Asset_B   Asset_C
+    Asset_A  0.000001  0.000187  0.000005
+    Asset_B  0.000187  0.028163  0.000739
+    Asset_C  0.000005  0.000739  0.000019
+
+    Notes
+    -----
+    - In risk parity, this matrix is used to compute the risk contribution of each asset.
+    - The diagonal values represent the variance of each asset's returns.
+    - Off-diagonal values represent the covariance between assets.
+    - For example, Asset_B has the highest variance (0.028163), indicating it is the riskiest asset in this sample.
     """
+
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("data is not in a dataframe", RuntimeWarning)
         prices = pd.DataFrame(prices)
