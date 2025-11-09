@@ -1,0 +1,43 @@
+# Workflow: Deptry
+#
+# Purpose: This workflow identifies missing and obsolete dependencies in the project.
+#          It helps maintain a clean dependency tree by detecting unused packages and
+#          implicit dependencies that should be explicitly declared.
+#
+# Trigger: This workflow runs on every push and on pull requests to main/master
+#          branches (including from forks)
+
+name: "DEPTRY"
+
+# Permissions: Only read access to repository contents is needed
+permissions:
+    contents: read
+
+on:
+  push:
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  deptry_analysis:
+    name: Check dependencies with deptry
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/astral-sh/uv:0.9.5-python3.12-trixie
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run deptry
+        run: |
+          set -euo pipefail
+          if [ -f "pyproject.toml" ]; then
+            if [ -d "src" ]; then
+              SOURCE_FOLDER="src"
+            else
+              SOURCE_FOLDER="."
+            fi
+            uvx deptry "$SOURCE_FOLDER"
+          else
+            printf "${YELLOW:-}[WARN] No pyproject.toml found, skipping deptry${RESET:-}\n"
+          fi
