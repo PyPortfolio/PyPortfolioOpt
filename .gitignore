@@ -47,3 +47,5 @@ dist
 .eggs
 
 artifacts
+
+_tests
