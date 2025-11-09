@@ -1,17 +1,17 @@
-.git
 *.pyc
 .idea
 build
 sandbox
 .DS_Store
 
-tests/dockerfiles/
-.tox/
 docs/_build/
 media/logo_design/
 DEV/
 .pytest_cache/
 .vscode/
+
+# folder used for task
+bin
 
 # Environments
 .env
@@ -47,4 +47,3 @@ dist
 .eggs
 
 artifacts
-
