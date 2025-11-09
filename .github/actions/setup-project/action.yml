@@ -1,0 +1,81 @@
+# Action: Setup Project (composite action)
+#
+# Purpose: Bootstrap a Python project in GitHub Actions by:
+#   - Installing Task, uv, and uvx into a local ./bin directory
+#   - Detecting presence of pyproject.toml and exposing it as an output
+#   - Creating a virtual environment with uv and syncing dependencies
+#
+# Inputs:
+#   - python-version: Python version used for the virtual environment (default: 3.12)
+#
+# Outputs:
+#   - pyproject_exists: "true" if pyproject.toml exists, otherwise "false"
+#
+# Notes:
+#   - Safe to run in repositories without pyproject.toml; dependency sync will be skipped.
+#   - Used by workflows such as CI, Book, Marimo, and Release.
+
+name: 'Setup Project'
+description: 'Setup the project'
+
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.12'
+
+outputs:
+  pyproject_exists:
+    description: 'Flag indicating whether pyproject.toml exists'
+    value: ${{ steps.check_pyproject.outputs.exists }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up task, uv, uvx and the venv
+      shell: bash
+      run: |
+        mkdir -p bin
+
+        # Add ./bin to the PATH
+        echo "Adding ./bin to PATH"
+        echo "$(pwd)/bin" >> $GITHUB_PATH
+
+        # Install Task
+        curl -fsSL https://taskfile.dev/install.sh | sh -s -- -d -b ./bin
+
+        # Install uv and uvx
+        curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR="./bin" sh
+
+    - name: Check version for task
+      shell: bash
+      run: |
+        task --version
+
+    - name: Check version for uv
+      shell: bash
+      run: |
+        uv --version
+
+    - name: Check for pyproject.toml
+      id: check_pyproject
+      shell: bash
+      run: |
+        if [ -f "pyproject.toml" ]; then
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Build the virtual environment
+      shell: bash
+      run: uv venv --python ${{ inputs.python-version }}
+
+    - name: "Sync the virtual environment for ${{ github.repository }} if pyproject.toml exists"
+      shell: bash
+      run: |
+        if [ -f "pyproject.toml" ]; then
+          uv sync --all-extras
+        else
+          echo "No pyproject.toml found, skipping package installation"
+        fi
