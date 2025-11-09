@@ -1,0 +1,29 @@
+# This file is part of the tschm/.config-templates repository
+# (https://github.com/tschm/.config-templates).
+#
+# Taskfile: Cleanup tasks
+#
+# Purpose: Remove build artifacts, caches, and orphaned Git branches to keep the
+#          working tree clean while preserving environment files.
+#
+# Components:
+#   - clean: delete generated files (dist, build, egg-info, caches) and prune
+#            local branches without a remote counterpart
+
+version: '3'
+
+tasks:
+  clean:
+    desc: Clean generated files and directories
+    cmds:
+      - |
+        printf "${BLUE}Cleaning project...${RESET}\n"
+        # do not clean .env files
+        git clean -d -X -f -e .env -e '.env.*'
+        rm -rf dist build *.egg-info .coverage .pytest_cache
+        printf "${BLUE}Removing local branches with no remote counterpart...${RESET}\n"
+        git fetch --prune
+        git branch -vv \
+          | grep ': gone]' \
+          | awk '{print $1}' \
+          | xargs -r git branch -D 2>/dev/null || true

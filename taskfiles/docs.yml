@@ -1,0 +1,173 @@
+# This file is part of the tschm/.config-templates repository
+# (https://github.com/tschm/.config-templates).
+#
+# Taskfile: Documentation and testing tasks
+#
+# Purpose: Provide tasks to run tests, generate API docs, export Marimo notebooks,
+#          assemble a combined documentation site ("book"), and run a Marimo server.
+#
+# Components:
+#   - test: run pytest with coverage and HTML report
+#   - docs: build API documentation with pdoc
+#   - marimushka: export Marimo notebooks to HTML and generate an index
+#   - book: assemble docs, test reports, and notebooks into a static site
+#   - marimo: start a Marimo server for interactive editing
+
+version: '3'
+
+includes:
+  build:
+    taskfile: ./build.yml
+    internal: true
+
+tasks:
+  test:
+    desc: Run all tests
+    cmds:
+      - ./bin/task build:install
+      - printf "${BLUE}[INFO] Running tests...${RESET}\n"
+      - |
+        # Find source folder
+        SOURCE_FOLDER="src/$(find src -mindepth 1 -maxdepth 1 -type d -not -path '*/\.*' | head -1 | sed 's|^src/||')"
+
+        if [ -z "$SOURCE_FOLDER" ] || [ -z "{{.TESTS_FOLDER}}" ]; then
+          printf "${YELLOW}[WARN] No valid source folder structure found, skipping tests${RESET}\n"
+        else
+          ./bin/uv pip install pytest pytest-cov pytest-html
+          mkdir -p _tests/html-coverage _tests/html-report
+          ./bin/uv run pytest {{.TESTS_FOLDER}} --cov=$SOURCE_FOLDER --cov-report=term --cov-report=html:_tests/html-coverage --html=_tests/html-report/report.html
+        fi
+
+  docs:
+    desc: Build documentation using pdoc
+    cmds:
+      - ./bin/task build:install
+      - |
+        if [ -f "pyproject.toml" ]; then
+          printf "${BLUE}[INFO] Building documentation...${RESET}\n"
+          if [ -d "src" ]; then
+            SOURCE_FOLDER=$(LC_ALL=C find src -mindepth 1 -maxdepth 1 -type d -not -path '*/\.*' | sort | head -1)
+            if [ -z "$SOURCE_FOLDER" ]; then
+              printf "${YELLOW}[WARN] src/ exists but contains no top-level packages, skipping docs${RESET}\n"
+            else
+              ./bin/uv pip install pdoc
+              ./bin/uv run pdoc -o _pdoc "$SOURCE_FOLDER"
+            fi
+          else
+            printf "${YELLOW}[WARN] No src/ directory found, skipping docs${RESET}\n"
+          fi
+        else
+          printf "${YELLOW}[WARN] No pyproject.toml found, skipping docs${RESET}\n"
+        fi
+
+  marimushka:
+    desc: Export Marimo notebooks to HTML
+    cmds:
+      - ./bin/task build:install
+      - printf "${BLUE}[INFO] Exporting notebooks from {{.MARIMO_FOLDER}}...${RESET}\n"
+      - |
+        if [ ! -d "{{.MARIMO_FOLDER}}" ]; then
+          printf "${YELLOW}[WARN] Directory '{{.MARIMO_FOLDER}}' does not exist. Skipping marimushka.${RESET}\n"
+        else
+          ./bin/uv pip install marimo
+          mkdir -p _marimushka
+          py_files=$(find "{{.MARIMO_FOLDER}}" -maxdepth 1 -name "*.py" | tr '\n' ' ')
+          if [ -z "$py_files" ]; then
+            printf "${YELLOW}[WARN] No Python files found in '{{.MARIMO_FOLDER}}'.${RESET}\n"
+            echo "<html><head><title>Marimo Notebooks</title></head><body><h1>Marimo Notebooks</h1><p>No notebooks found.</p></body></html>" > _marimushka/index.html
+          else
+            printf "${BLUE}[INFO] Found Python files: %s${RESET}\n" "$py_files"
+            for py_file in $py_files; do
+              printf " ${BLUE}[INFO] Processing %s...${RESET}\n" "$py_file"
+              rel_path=$(echo "$py_file" | sed "s|^{{.MARIMO_FOLDER}}/||")
+              dir_path=$(dirname "$rel_path")
+              base_name=$(basename "$rel_path" .py)
+              mkdir -p "_marimushka/$dir_path"
+
+              # Check if the file has a script header ("# /// script")
+              if grep -q "^# /// script" "$py_file"; then
+                printf " ${BLUE}[INFO] Script header detected, using --sandbox flag...${RESET}\n"
+                ./bin/uvx marimo export html --sandbox --include-code --output "_marimushka/$dir_path/$base_name.html" "$py_file"
+              else
+                printf " ${BLUE}[INFO] No script header detected, using standard export...${RESET}\n"
+                ./bin/uv run marimo export html --include-code --output "_marimushka/$dir_path/$base_name.html" "$py_file"
+              fi
+            done
+            echo "<html><head><title>Marimo Notebooks</title></head><body><h1>Marimo Notebooks</h1><ul>" > _marimushka/index.html
+            find _marimushka -name "*.html" -not -path "*index.html" | sort | while read html_file; do
+              rel_path=$(echo "$html_file" | sed "s|^_marimushka/||")
+              name=$(basename "$rel_path" .html)
+              echo "<li><a href=\"$rel_path\">$name</a></li>" >> _marimushka/index.html
+            done
+            echo "</ul></body></html>" >> _marimushka/index.html
+            touch _marimushka/.nojekyll
+          fi
+        fi
+
+  book:
+    desc: Build the companion book with test results and notebooks
+    cmds:
+      - ./bin/task build:install
+      - printf "${BLUE}[INFO] Building combined documentation...${RESET}\n"
+      - printf "${BLUE}[INFO] Delete the _book folder...${RESET}\n"
+      - rm -rf _book
+      - printf "${BLUE}[INFO] Create empty _book folder...${RESET}\n"
+      - mkdir -p _book
+      - touch _book/links.json
+      - |
+        printf "${BLUE}[INFO] Copy API docs...${RESET}\n"
+        if [ -d _pdoc ]; then
+          mkdir -p _book/pdoc
+          cp -r _pdoc/* _book/pdoc
+          echo '{"API": "./pdoc/index.html"}' > _book/links.json
+        else
+          echo '{}' > _book/links.json
+        fi
+
+        printf "${BLUE}[INFO] Copy coverage report...${RESET}\n"
+        if [ -d _tests/html-coverage ] && [ "$(ls -A _tests/html-coverage 2>/dev/null)" ]; then
+          mkdir -p _book/tests/html-coverage
+          cp -r _tests/html-coverage/* _book/tests/html-coverage
+          jq '. + {"Coverage": "./tests/html-coverage/index.html"}' _book/links.json > _book/tmp && mv _book/tmp _book/links.json
+        else
+          printf "${YELLOW}[WARN] No coverage report found or directory is empty${RESET}\n"
+        fi
+
+        printf "${BLUE}[INFO] Copy test report...${RESET}\n"
+        if [ -d _tests/html-report ] && [ "$(ls -A _tests/html-report 2>/dev/null)" ]; then
+          mkdir -p _book/tests/html-report
+          cp -r _tests/html-report/* _book/tests/html-report
+          jq '. + {"Test Report": "./tests/html-report/report.html"}' _book/links.json > _book/tmp && mv _book/tmp _book/links.json
+        else
+          printf "${YELLOW}[WARN] No test report found or directory is empty${RESET}\n"
+        fi
+
+        printf "${BLUE}[INFO] Copy notebooks...${RESET}\n"
+        if [ -d _marimushka ] && [ "$(ls -A _marimushka 2>/dev/null)" ]; then
+          mkdir -p _book/marimushka
+          cp -r _marimushka/* _book/marimushka
+          jq '. + {"Notebooks": "./marimushka/index.html"}' _book/links.json > _book/tmp && mv _book/tmp _book/links.json
+          printf "${BLUE}[INFO] Copied notebooks from {{.MARIMO_FOLDER}} to _book/marimushka${RESET}\n"
+        else
+          printf "${YELLOW}[WARN] No notebooks found or directory is empty${RESET}\n"
+        fi
+
+        printf "${BLUE}[INFO] Generated links.json:${RESET}\n"
+        cat _book/links.json
+
+        ./bin/uvx minibook --title "{{.BOOK_TITLE}}" --subtitle "{{.BOOK_SUBTITLE}}" --links "$(cat _book/links.json)" --output "_book"
+
+        touch "_book/.nojekyll"
+
+  marimo:
+    desc: Start a Marimo server
+    cmds:
+      - ./bin/task build:install
+      - printf " ${BLUE}[INFO] Start Marimo server with {{.MARIMO_FOLDER}}...${RESET}\n"
+      - |
+        if [ ! -d "{{.MARIMO_FOLDER}}" ]; then
+          printf " ${YELLOW}[WARN] Marimo folder '{{.MARIMO_FOLDER}}' not found, skipping start${RESET}\n"
+        else
+          ./bin/uv sync --all-extras
+          ./bin/uv run marimo edit "{{.MARIMO_FOLDER}}"
+        fi

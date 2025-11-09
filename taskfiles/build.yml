@@ -1,0 +1,72 @@
+# This file is part of the tschm/.config-templates repository
+# (https://github.com/tschm/.config-templates).
+#
+# Taskfile: Build tasks
+#
+# Purpose: Provide build-related utilities for Python projects using uv, including:
+#   - Installing uv and uvx into a local ./bin directory
+#   - Creating a virtual environment and syncing dependencies
+#   - Building the package with Hatch when a pyproject.toml is present
+#
+# Components:
+#   - uv: install uv/uvx if missing
+#   - install: create venv and install dependencies (if pyproject.toml exists)
+#   - build: build the package with Hatch (if pyproject.toml exists)
+
+version: '3'
+
+dir: .
+
+tasks:
+  uv:
+    desc: Install uv and uvx
+    env:
+      UV_INSTALL_DIR: ./bin
+    cmds:
+      - |
+        if [ -x "${UV_INSTALL_DIR}/uv" ] && [ -x "${UV_INSTALL_DIR}/uvx" ]; then
+          # already installed — stay quiet
+          exit 0
+        fi
+        printf "${BLUE}Installing uv${RESET}\n"
+        curl -LsSf https://astral.sh/uv/install.sh | sh 2>/dev/null || { printf "${RED}[ERROR] Failed to install uv ${RESET}\n"; exit 1; }
+
+
+  install:
+    desc: Install all dependencies using uv
+    deps: [uv]
+    env:
+      UV_VENV_CLEAR: 1
+    cmds:
+      - |
+        # we need the virtual environment at least for the tests to work
+        # even if we don't install anything
+
+        printf "${BLUE}[INFO] Creating virtual environment...${RESET}\n"
+
+        # Create the virtual environment
+        ./bin/uv venv --python 3.12 || { printf "${RED}[ERROR] Failed to create virtual environment${RESET}\n"; exit 1; }
+
+        if [ -f "tests/requirements.txt" ]; then
+          ./bin/uv pip install -r tests/requirements.txt || { printf "${RED}[ERROR] Failed to install test requirements${RESET}\n"; exit 1; }
+        fi
+
+        if [ -f "pyproject.toml" ]; then
+          printf "${BLUE}[INFO] Installing dependencies${RESET}\n"
+          ./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
+        else
+          printf "${YELLOW}[WARN] No pyproject.toml found, skipping install${RESET}\n"
+        fi
+
+  build:
+    desc: Build the package using hatch
+    deps: [install]
+    cmds:
+      - |
+        if [ -f "pyproject.toml" ]; then
+          printf "${BLUE}[INFO] Building package...${RESET}\n"
+          ./bin/uv pip install hatch
+          ./bin/uv run hatch build
+        else
+          printf "${YELLOW}[WARN] No pyproject.toml found, skipping build${RESET}\n"
+        fi
