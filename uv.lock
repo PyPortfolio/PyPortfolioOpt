@@ -2395,7 +2395,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pyportfolioopt"
+name = "pypfopt"
 version = "1.5.6"
 source = { editable = "." }
 dependencies = [
