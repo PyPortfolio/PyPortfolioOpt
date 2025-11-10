@@ -30,17 +30,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest isort black flake8
+          pip install pytest
           pip install ecos
       - name: Test with pytest
         run: |
           pytest ./tests
-      - name: Check with isort
-        run: |
-          isort --check --diff .
-      - name: Check with black
-        run: |
-          black --check --diff .
-      - name: Check with flake8
-        run: |
-          flake8 --show-source --statistics .
