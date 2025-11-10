@@ -32,6 +32,8 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
           pip install ecos
+          pip install -e .
+
       - name: Test with pytest
         run: |
           pytest ./tests
