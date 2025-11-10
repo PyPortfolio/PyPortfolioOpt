@@ -1,0 +1,44 @@
+# This file is part of the tschm/.config-templates repository
+# (https://github.com/tschm/.config-templates).
+#
+# Taskfile: Code quality tasks
+#
+# Purpose: Run automated code quality checks to maintain a healthy codebase.
+#          Uses pre-commit for formatting/linting and deptry for dependency hygiene.
+#
+# Components:
+#   - lint: run pre-commit hooks over the entire repository
+#   - deptry: analyze dependencies and detect issues
+#   - check: aggregate target to run both lint and deptry
+
+version: '3'
+
+includes:
+  build:
+    taskfile: ./build.yml
+    internal: true
+
+tasks:
+  lint:
+    desc: Run pre-commit hooks
+    cmds:
+      - ./bin/task build:uv --silent
+      - ./bin/uvx pre-commit run --all-files
+
+  deptry:
+    desc: Check for dependency issues
+    cmds:
+      - ./bin/task build:uv --silent
+      - |
+        if [ -f "pyproject.toml" ]; then
+          SOURCE_FOLDER="src/$(find src -mindepth 1 -maxdepth 1 -type d -not -path '*/\.*' | head -1 | sed 's|^src/||')"
+          ./bin/uvx deptry $SOURCE_FOLDER {{.OPTIONS}}
+        else
+          printf "${YELLOW} No pyproject.toml found, skipping deptry${RESET}\n"
+        fi
+
+  check:
+    desc: Run all code quality checks
+    deps: [lint, deptry]
+    cmds:
+      - printf "${GREEN} All checks passed!${RESET}\n"

@@ -1,0 +1,74 @@
+# This file is part of the tschm/.config-templates repository
+# (https://github.com/tschm/.config-templates).
+#
+# Taskfile: Root Taskfile
+#
+# Purpose: Provide a unified entry point for developer tasks by grouping
+#          build, quality, documentation, and cleanup commands. Exposes
+#          helpful default and help targets.
+#
+# Components:
+#   - includes: build, quality, docs, cleanup
+#   - tasks:
+#       - default: show top-level tasks
+#       - help: show all tasks including nested ones
+
+version: '3'
+silent: true
+
+# Variables
+vars:
+  TESTS_FOLDER: tests
+  MARIMO_FOLDER: book/marimo
+  BOOK_TITLE: '{{env "REPO_NAME"}}'   # defined below env section
+  BOOK_SUBTITLE: 'Documentation and Reports'
+  OPTIONS: ''
+
+# Environment variables
+env:
+  # Colors for pretty output
+  BLUE: '\x1b[36m'
+  GREEN: '\x1b[32m'
+  RED: '\x1b[31m'
+  YELLOW: '\x1b[33m'
+  CYAN: '\x1b[36m'
+  MAGENTA: '\x1b[35m'
+  BOLD: '\x1b[1m'
+  RESET: '\x1b[0m'
+  # Set repository name
+  REPO_NAME:
+    sh: basename $(pwd)
+
+  #LOG_INFO: 'printf "${BLUE}[INFO] %s${RESET}\n"'
+  #LOG_SUCCESS: 'printf "${GREEN}[SUCCESS] %s${RESET}\n"'
+  #LOG_ERROR: 'printf "${RED}[ERROR] %s${RESET}\n"'
+
+
+# Include task groups
+includes:
+  build:
+    taskfile: ./taskfiles/build.yml
+    desc: Build tasks for managing dependencies and building packages
+  quality:
+    taskfile: ./taskfiles/quality.yml
+    desc: Code quality tasks for formatting, linting, and checking code
+  docs:
+    taskfile: ./taskfiles/docs.yml
+    desc: Documentation tasks for building docs, notebooks, and books
+  cleanup:
+    taskfile: ./taskfiles/cleanup.yml
+    desc: Cleanup tasks for removing generated files and directories
+
+# Task definitions
+tasks:
+  default:
+    desc: Display help information
+    silent: true
+    cmds:
+      - ./bin/task --list
+
+  help:
+    desc: Display help information with all tasks
+    silent: true
+    cmds:
+      - ./bin/task --list-all
