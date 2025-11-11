@@ -85,8 +85,8 @@ requires = [
 [tool.setuptools.packages.find]
 exclude = ["example", "example.*", "tests", "tests.*"]
 
-[tool.black]
-line-length = 88
+#[tool.black]
+#line-length = 88
 
-[tool.isort]
-profile = "black"
+#[tool.isort]
+#profile = "black"
