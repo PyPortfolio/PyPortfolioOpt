@@ -31,9 +31,7 @@ def test_correlation_plot():
     ax = plotting.plot_covariance(S, show_tickers=False, showfig=False)
     assert len(ax.findobj()) > 130
     plt.clf()
-    ax = plotting.plot_covariance(
-        S, plot_correlation=True, show_tickers=False, showfig=False
-    )
+    ax = plotting.plot_covariance(S, plot_correlation=True, show_tickers=False, showfig=False)
     assert len(ax.findobj()) > 130
     plt.clf()
 
@@ -58,12 +56,12 @@ def test_dendrogram_plot():
 
     ax = plotting.plot_dendrogram(hrp, showfig=False)
     assert len(ax.findobj()) > 180
-    assert type(ax.findobj()[0]) == matplotlib.collections.LineCollection
+    assert isinstance(ax.findobj()[0], matplotlib.collections.LineCollection)
     plt.clf()
 
     ax = plotting.plot_dendrogram(hrp, show_tickers=False, showfig=False)
     assert len(ax.findobj()) > 60
-    assert type(ax.findobj()[0]) == matplotlib.collections.LineCollection
+    assert isinstance(ax.findobj()[0], matplotlib.collections.LineCollection)
     plt.clf()
     plt.close()
 
@@ -73,12 +71,9 @@ def test_dendrogram_plot():
     with pytest.warns(RuntimeWarning) as w:
         ax = plotting.plot_dendrogram(hrp, show_tickers=False, showfig=False)
         assert len(w) <= 2  # the second is FutureWarning if exists
-        assert (
-            str(w[0].message)
-            == "hrp param has not been optimized.  Attempting optimization."
-        )
+        assert str(w[0].message) == "hrp param has not been optimized.  Attempting optimization."
         assert len(ax.findobj()) > 60
-        assert type(ax.findobj()[0]) == matplotlib.collections.LineCollection
+        assert isinstance(ax.findobj()[0], matplotlib.collections.LineCollection)
     plt.clf()
     plt.close()
 
@@ -143,9 +138,7 @@ def test_ef_plot_utility():
     plt.figure()
     ef = setup_efficient_frontier()
     delta_range = np.arange(0.001, 50, 1)
-    ax = plotting.plot_efficient_frontier(
-        ef, ef_param="utility", ef_param_range=delta_range, showfig=False
-    )
+    ax = plotting.plot_efficient_frontier(ef, ef_param="utility", ef_param_range=delta_range, showfig=False)
     assert len(ax.findobj()) > 120
     plt.clf()
     plt.close()
@@ -157,14 +150,10 @@ def test_ef_plot_errors():
     delta_range = np.arange(0.001, 50, 1)
     # Test invalid ef_param
     with pytest.raises(NotImplementedError):
-        plotting.plot_efficient_frontier(
-            ef, ef_param="blah", ef_param_range=delta_range, showfig=False
-        )
+        plotting.plot_efficient_frontier(ef, ef_param="blah", ef_param_range=delta_range, showfig=False)
     # Test invalid optimizer
     with pytest.raises(NotImplementedError):
-        plotting.plot_efficient_frontier(
-            None, ef_param_range=delta_range, showfig=False
-        )
+        plotting.plot_efficient_frontier(None, ef_param_range=delta_range, showfig=False)
     plt.clf()
     plt.close()
 
@@ -177,9 +166,7 @@ def test_ef_plot_risk():
 
     ef = setup_efficient_frontier()
     risk_range = np.linspace(min_risk + 0.05, 0.5, 30)
-    ax = plotting.plot_efficient_frontier(
-        ef, ef_param="risk", ef_param_range=risk_range, showfig=False
-    )
+    ax = plotting.plot_efficient_frontier(ef, ef_param="risk", ef_param_range=risk_range, showfig=False)
     assert len(ax.findobj()) > 120
     plt.clf()
     plt.close()
@@ -191,9 +178,7 @@ def test_ef_plot_return():
     # Internally _max_return() is used, so subtract epsilon
     max_ret = ef.expected_returns.max() - 0.0001
     return_range = np.linspace(0, max_ret, 30)
-    ax = plotting.plot_efficient_frontier(
-        ef, ef_param="return", ef_param_range=return_range, showfig=False
-    )
+    ax = plotting.plot_efficient_frontier(ef, ef_param="return", ef_param_range=return_range, showfig=False)
     assert len(ax.findobj()) > 120
     plt.clf()
     plt.close()
@@ -201,13 +186,9 @@ def test_ef_plot_return():
 
 def test_ef_plot_utility_short():
     plt.figure()
-    ef = EfficientFrontier(
-        *setup_efficient_frontier(data_only=True), weight_bounds=(None, None)
-    )
+    ef = EfficientFrontier(*setup_efficient_frontier(data_only=True), weight_bounds=(None, None))
     delta_range = np.linspace(0.001, 20, 50)
-    ax = plotting.plot_efficient_frontier(
-        ef, ef_param="utility", ef_param_range=delta_range, showfig=False
-    )
+    ax = plotting.plot_efficient_frontier(ef, ef_param="utility", ef_param_range=delta_range, showfig=False)
     assert len(ax.findobj()) > 150
     plt.clf()
     plt.close()
@@ -221,9 +202,7 @@ def test_constrained_ef_plot_utility():
     ef.add_constraint(lambda w: w[3] + w[4] <= 0.10)
 
     delta_range = np.linspace(0.001, 20, 50)
-    ax = plotting.plot_efficient_frontier(
-        ef, ef_param="utility", ef_param_range=delta_range, showfig=False
-    )
+    ax = plotting.plot_efficient_frontier(ef, ef_param="utility", ef_param_range=delta_range, showfig=False)
     assert len(ax.findobj()) > 120
     plt.clf()
     plt.close()
@@ -231,9 +210,7 @@ def test_constrained_ef_plot_utility():
 
 def test_constrained_ef_plot_risk():
     plt.figure()
-    ef = EfficientFrontier(
-        *setup_efficient_frontier(data_only=True), weight_bounds=(None, None)
-    )
+    ef = EfficientFrontier(*setup_efficient_frontier(data_only=True), weight_bounds=(None, None))
 
     ef.add_constraint(lambda w: w[0] >= 0.2)
     ef.add_constraint(lambda w: w[2] == 0.15)
