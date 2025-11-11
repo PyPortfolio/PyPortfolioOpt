@@ -6,7 +6,7 @@ target-version = "py311"
 ## Exclude directories with Jinja template variables in their names
 #exclude = ["**/[{][{]*/", "**/*[}][}]*/"]
 #
-#[lint]
+[lint]
 ## Available rule sets in Ruff:
 ## A: flake8-builtins - Check for python builtins being used as variables or parameters
 ## B: flake8-bugbear - Find likely bugs and design problems
@@ -56,6 +56,8 @@ target-version = "py311"
 ## W: pycodestyle warnings - PEP 8 style guide warnings
 ## UP: pyupgrade - Upgrade syntax for newer Python
 #select = ["D", "E", "F", "I", "N", "W", "UP"]
+select = ["F","I"]
+
 #
 ## Resolve incompatible pydocstyle rules: prefer D211 and D212 over D203 and D213
 #ignore = ["D203", "D213"]
@@ -77,3 +79,9 @@ target-version = "py311"
 #"tests/**/*.py" = ["S101"]        # Allow assert statements in tests
 #"book/marimo/*.py" = ["N803", "S101"] # Allow non-lowercase variable names (N803)
 #                                      # and assert statements in marimo files
+
+
+# Exclude individual files from Ruff linting/formatting
+exclude = [
+  "tests/test_imports.py",
+]
