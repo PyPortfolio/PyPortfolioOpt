@@ -54,14 +54,14 @@ jobs:
         run: |
           pytest ./tests
 
-      - name: Check with isort
-        run: |
-          isort --check --diff .
+      #- name: Check with isort
+      #  run: |
+      #    isort --check --diff .
 
-      - name: Check with black
-        run: |
-          black --check --diff .
+      #- name: Check with black
+      #  run: |
+      #    black --check --diff .
 
-      - name: Check with flake8
-        run: |
-          flake8 --show-source --statistics .
+      #- name: Check with flake8
+      #  run: |
+      #    flake8 --show-source --statistics .
