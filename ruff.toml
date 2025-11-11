@@ -1,5 +1,5 @@
 # Maximum line length for the entire project
-line-length = 120
+line-length = 88
 # Target Python version
 target-version = "py311"
 #
