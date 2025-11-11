@@ -1,6 +1,3 @@
-# This file is part of the tschm/.config-templates repository
-# (https://github.com/tschm/.config-templates).
-#
 # Workflow: Pre-commit
 #
 # Purpose: This workflow runs pre-commit checks to ensure code quality
