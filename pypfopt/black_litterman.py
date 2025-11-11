@@ -135,7 +135,7 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         view_confidences=None,
         tau=0.05,
         risk_aversion=1,
-        **kwargs
+        **kwargs,
     ):
         """
         :param cov_matrix: NxN covariance matrix of returns
@@ -296,8 +296,7 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         elif omega == "idzorek":
             if view_confidences is None:
                 raise ValueError(
-                    "To use Idzorek's method, please supply a vector of percentage "
-                    "confidence levels for each view."
+                    "To use Idzorek's method, please supply a vector of percentage confidence levels for each view."
                 )
             if not isinstance(view_confidences, np.ndarray):
                 try:

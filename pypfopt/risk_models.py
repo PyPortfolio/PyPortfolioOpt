@@ -181,7 +181,7 @@ def semicovariance(
     benchmark=0.000079,
     frequency=252,
     log_returns=False,
-    **kwargs
+    **kwargs,
 ):
     """
     Estimate the semicovariance matrix, i.e the covariance given that
@@ -290,7 +290,7 @@ def min_cov_determinant(
     frequency=252,
     random_state=None,
     log_returns=False,
-    **kwargs
+    **kwargs,
 ):  # pragma: no cover
     warnings.warn("min_cov_determinant is deprecated and will be removed in v1.5")
 
