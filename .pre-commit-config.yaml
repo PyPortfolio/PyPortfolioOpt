@@ -29,13 +29,13 @@ repos:
       - id: check-github-workflows
         args: ["--verbose"]
 
-  #- repo: https://github.com/rhysd/actionlint
-  #  rev: v1.7.8
-  #  hooks:
-  #    - id: actionlint
-  #      args: [ -ignore, SC ]
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.8
+    hooks:
+      - id: actionlint
+        args: [ -ignore, SC ]
 
-  #- repo: https://github.com/abravalheri/validate-pyproject
-  #  rev: v0.24.1
-  #  hooks:
-  #    - id: validate-pyproject
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.24.1
+    hooks:
+      - id: validate-pyproject
