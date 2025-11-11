@@ -62,11 +62,11 @@ all_extras = [
 # dev - the developer dependency set, for contributors and CI
 dev = [
     "pytest>=7.1.2",
-    "flake8>=4.0.1",
-    "black>=22.3.0",
+    #"flake8>=4.0.1",
+    #"black>=22.3.0",
     "pytest-cov>=3.0.0",
     "yfinance>=0.1.70",
-    "isort",
+    #"isort",
 ]
 
 [project.urls]
