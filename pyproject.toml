@@ -85,8 +85,22 @@ requires = [
 [tool.setuptools.packages.find]
 exclude = ["example", "example.*", "tests", "tests.*"]
 
-#[tool.black]
-#line-length = 88
+[tool.ruff]
+line-length = 88
+# Keep Ruff aligned with project target version
+target-version = "py311"
+# Exclude individual files/patterns from Ruff linting/formatting
+exclude = [
+  "tests/test_imports.py",
+  "cookbook/*.ipynb",
+]
 
-#[tool.isort]
-#profile = "black"
+[tool.ruff.lint]
+# Keep the same selected rule sets as in ruff.toml
+select = ["F", "I"]
+
+[tool.ruff.format]
+# Formatting configuration
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
