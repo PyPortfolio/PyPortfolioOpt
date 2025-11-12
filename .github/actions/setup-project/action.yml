@@ -86,4 +86,4 @@ runs:
 
     - name: Show Python version
       shell: bash
-      run: python -c "import sys; print(sys.version)"
+      run: uv run python -c "import sys; print(sys.version)"
