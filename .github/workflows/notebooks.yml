@@ -15,11 +15,11 @@ jobs:
     strategy:
       matrix:
         python-version: [ '3.10', '3.11', '3.12', '3.13', '3.14' ]
-        notebook: [ 1-RiskReturnModels.ipynb,
-                    2-Mean-Variance-Optimisation.ipynb,
-                    3-Advanced-Mean-Variance-Optimisation.ipynb,
-                    4-Black-Litterman-Allocation.ipynb,
-                    5-Hierarchical-Risk-Parity.ipynb]
+        notebook: [ cookbook/1-RiskReturnModels.ipynb,
+                    cookbook/2-Mean-Variance-Optimisation.ipynb,
+                    cookbook/3-Advanced-Mean-Variance-Optimisation.ipynb,
+                    cookbook/4-Black-Litterman-Allocation.ipynb,
+                    cookbook/5-Hierarchical-Risk-Parity.ipynb]
         #exclude:
         #  - python-version: '3.11'
         #    notebook: Ch10-deeplearning-lab.ipynb
