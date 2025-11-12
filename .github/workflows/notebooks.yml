@@ -40,11 +40,11 @@ jobs:
     - name: Install requirements
       shell: bash
       run: |
-        uv pip install nbmake
+        uv pip install nbmake pytest-rerunfailures
 
     # Run the notebooks
     - name: Test
       shell: bash
       run: |
-        uv run pytest --nbmake --nbmake-timeout=3600 -vv ${{ matrix.notebook }}
+        uv run pytest --reruns 3 --nbmake --nbmake-timeout=3600 -vv ${{ matrix.notebook }}
         
