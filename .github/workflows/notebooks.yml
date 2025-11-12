@@ -1,0 +1,50 @@
+name: notebooks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [ '3.10', '3.11', '3.12', '3.13', '3.14' ]
+        notebook: [ 1-RiskReturnModels.ipynb,
+                    2-Mean-Variance-Optimisation.ipynb,
+                    3-Advanced-Mean-Variance-Optimisation.ipynb,
+                    4-Black-Litterman-Allocation.ipynb,
+                    5-Hierarchical-Risk-Parity.ipynb]
+        #exclude:
+        #  - python-version: '3.11'
+        #    notebook: Ch10-deeplearning-lab.ipynb
+
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Use the composite action to set up the project
+    - name: Setup the project
+      id: setup
+      uses: ./.github/actions/setup-project
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    # Install nbmake
+    - name: Install requirements
+      shell: bash
+      run: |
+        uv pip install nbmake
+
+    # Run the notebooks
+    - name: Test
+      shell: bash
+      run: |
+        uv run pytest --nbmake --nbmake-timeout=3600 -vv ${{ matrix.notebook }}
+        
