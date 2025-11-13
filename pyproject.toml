@@ -69,6 +69,12 @@ dev = [
     "isort",
 ]
 
+# notebook tests
+notebook_test = [
+    "nbmake",
+    "pytest-rerunfailures",
+]
+
 [project.urls]
 Documentation = "https://pyportfolioopt.readthedocs.io/en/latest/"
 Download = "https://pypi.org/project/pyportfolioopt/#files"
