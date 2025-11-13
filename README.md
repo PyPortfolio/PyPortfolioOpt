@@ -24,6 +24,8 @@
             alt="downloads"></a> &nbsp;
 </p>
 
+[binder notebooks](https://mybinder.org/v2/gh/pyportfolio/pyportfolioopt/main)
+
 <!-- content -->
 
 PyPortfolioOpt is a library that implements portfolio optimization methods, including
@@ -76,19 +78,15 @@ pip install pyportfolioopt
 
 ### From source
 
-Clone the repository and install using the provided Makefile:
+Clone the repository, navigate to the folder, and install using pip:
 
 ```bash
 git clone https://github.com/PyPortfolio/PyPortfolioOpt.git
 cd PyPortfolioOpt
-make install
+pip install .
 ```
 
-This will install [uv](https://github.com/astral-sh/uv)
-(a fast Python package installer) and create a
-virtual environment with all dependencies.
-
-## A quick example
+## Getting started
 
 Here is an example on real life stock data, 
 demonstrating how easy it is to find the long-only portfolio 
