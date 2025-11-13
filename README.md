@@ -22,9 +22,10 @@
     <a href="https://pepy.tech/project/pyportfolioopt">
         <img src="https://pepy.tech/badge/pyportfolioopt"
             alt="downloads"></a> &nbsp;
+    <a href="https://mybinder.org/v2/gh/pyportfolio/pyportfolioopt/main/?filepath=cookbook">
+      <img src="https://mybinder.org/badge_logo.svg"
+            alt="binder"></a> &nbsp;
 </p>
-
-[binder notebooks](https://mybinder.org/v2/gh/pyportfolio/pyportfolioopt/main)
 
 <!-- content -->
 
