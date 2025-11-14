@@ -11,14 +11,14 @@
 # Components:
 #   - 🔍 Run pre-commit checks using reusable action
 
-name: "PRE-COMMIT"
+name: pre-commit
 permissions:
   contents: read
 
 on:
   push:
   pull_request:
-    branches: [ main, master ]
+    branches: main
 
 jobs:
   pre-commit:
