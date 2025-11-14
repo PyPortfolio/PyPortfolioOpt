@@ -19,9 +19,6 @@
     <a href="https://github.com/pyportfolio/pyportfolioopt/actions">
         <img src="https://github.com/pyportfolio/pyportfolioopt/actions/workflows/main.yml/badge.svg?branch=main"
             alt="build"></a> &nbsp;
-    <a href="https://app.codecov.io/gh/pyportfolio/pyportfolioopt">
-        <img src="https://codecov.io/github/pyportfolio/pyportfolioopt/coverage.svg?branch=main"
-            alt="codecov"></a> &nbsp;
     <a href="https://pepy.tech/project/pyportfolioopt">
         <img src="https://pepy.tech/badge/pyportfolioopt"
             alt="downloads"></a> &nbsp;
@@ -72,72 +69,29 @@ Head over to the **[documentation on ReadTheDocs](https://pyportfolioopt.readthe
 - [Contributing](#contributing)
 - [Getting in touch](#getting-in-touch)
 
+## 🚀 Installation
+
+### Using pip
+
+```bash
+pip install pyportfolioopt
+```
+
+### From source
+
+Clone the repository, navigate to the folder, and install using pip:
+
+```bash
+git clone https://github.com/PyPortfolio/PyPortfolioOpt.git
+cd PyPortfolioOpt
+pip install .
+```
+
 ## Getting started
 
-If you would like to play with PyPortfolioOpt interactively in your browser, you may launch Binder [here](https://mybinder.org/v2/gh/pyportfolio/pyportfolioopt/main). It takes a
-while to set up, but it lets you try out the cookbook recipes without having to deal with all of the requirements.
-
-_Note: macOS users will need to install [Command Line Tools](https://osxdaily.com/2014/02/12/install-command-line-tools-mac-os-x/)._
-
-_Note: if you are on windows, you first need to installl C++. ([download](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16), [install instructions](https://drive.google.com/file/d/0B4GsMXCRaSSIOWpYQkstajlYZ0tPVkNQSElmTWh1dXFaYkJr/view))_
-
-This project is available on PyPI, meaning that you can just:
-
-```bash
-pip install PyPortfolioOpt
-```
-
-(you may need to follow separate installation instructions for [cvxopt](https://cvxopt.org/install/index.html#) and [cvxpy](https://www.cvxpy.org/install/)).
-
-However, it is best practice to use a dependency manager within a virtual environment.
-My current recommendation is to get yourself set up with [poetry](https://github.com/sdispater/poetry) then just run
-
-```bash
-poetry add PyPortfolioOpt
-```
-
-Otherwise, clone/download the project and in the project directory run:
-
-```bash
-python setup.py install
-```
-
-PyPortfolioOpt supports Docker. Build your first container with `docker build -f docker/Dockerfile . -t pypfopt`. You can use the image to run tests or even launch a Jupyter server.
-
-```bash
-# iPython interpreter:
-docker run -it pypfopt poetry run ipython
-
-# Jupyter notebook server:
-docker run -it -p 8888:8888 pypfopt poetry run jupyter notebook --allow-root --no-browser --ip 0.0.0.0
-# click on http://127.0.0.1:8888/?token=xxx
-
-# Pytest
-docker run -t pypfopt poetry run pytest
-
-# Bash
-docker run -it pypfopt bash
-```
-
-For more information, please read [this guide](https://docker-curriculum.com/#introduction).
-
-### For development
-
-If you would like to make major changes to integrate this with your proprietary system, it probably makes sense to clone this repository and to just use the source code.
-
-```bash
-git clone https://github.com/pyportfolio/pyportfolioopt
-```
-
-Alternatively, you could try:
-
-```bash
-pip install -e git+https://github.com/pyportfolio/pyportfolioopt.git
-```
-
-## A quick example
-
-Here is an example on real life stock data, demonstrating how easy it is to find the long-only portfolio that maximises the Sharpe ratio (a measure of risk-adjusted returns).
+Here is an example on real life stock data, 
+demonstrating how easy it is to find the long-only portfolio 
+that maximises the Sharpe ratio (a measure of risk-adjusted returns).
 
 ```python
 import pandas as pd
@@ -190,7 +144,10 @@ Annual volatility: 22.2%
 Sharpe Ratio: 1.28
 ```
 
-This is interesting but not useful in itself. However, PyPortfolioOpt provides a method which allows you to convert the above continuous weights to an actual allocation that you could buy. Just enter the most recent prices, and the desired portfolio size ($10,000 in this example):
+This is interesting but not useful in itself. 
+However, PyPortfolioOpt provides a method which allows you to 
+convert the above continuous weights to an actual allocation 
+that you could buy. Just enter the most recent prices, and the desired portfolio size ($10,000 in this example):
 
 ```python
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
@@ -211,18 +168,26 @@ Discrete allocation: {'GOOG': 1, 'AAPL': 4, 'FB': 12, 'BABA': 4, 'BBY': 2,
 Funds remaining: $11.89
 ```
 
-_Disclaimer: nothing about this project constitues investment advice, and the author bears no responsibiltiy for your subsequent investment decisions. Please refer to the [license](https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/LICENSE.txt) for more information._
+_Disclaimer: nothing about this project constitues investment advice, 
+and the author bears no responsibiltiy for your subsequent investment decisions. 
+Please refer to the [license](https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/LICENSE.txt) for more information._
 
 ## An overview of classical portfolio optimization methods
 
-Harry Markowitz's 1952 paper is the undeniable classic, which turned portfolio optimization from an art into a science. The key insight is that by combining assets with different expected returns and volatilities, one can decide on a mathematically optimal allocation which minimises the risk for a target return – the set of all such optimal portfolios is referred to as the **efficient frontier**.
+Harry Markowitz's 1952 paper is the undeniable classic, 
+which turned portfolio optimization from an art into a science. 
+The key insight is that by combining assets with different expected returns and volatilities, 
+one can decide on a mathematically optimal allocation which minimises 
+the risk for a target return – the set of all such optimal portfolios is referred to as the **efficient frontier**.
 
 <center>
 <img src="https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/media/efficient_frontier_white.png?raw=true" style="width:60%;"/>
 </center>
 
-Although much development has been made in the subject, more than half a century later, Markowitz's core ideas are still fundamentally important and see daily use in many portfolio management firms.
-The main drawback of mean-variance optimization is that the theoretical treatment requires knowledge of the expected returns and the future risk-characteristics (covariance) of the assets. Obviously, if we knew the expected returns of a stock life would be much easier, but the whole game is that stock returns are notoriously hard to forecast. As a substitute, we can derive estimates of the expected return and covariance based on historical data – though we do lose the theoretical guarantees provided by Markowitz, the closer our estimates are to the real values, the better our portfolio will be.
+Although much development has been made in the subject, more than half a century later, 
+Markowitz's core ideas are still fundamentally important and see daily use in many portfolio management firms.
+The main drawback of mean-variance optimization is that the theoretical 
+treatment requires knowledge of the expected returns and the future risk-characteristics (covariance) of the assets. Obviously, if we knew the expected returns of a stock life would be much easier, but the whole game is that stock returns are notoriously hard to forecast. As a substitute, we can derive estimates of the expected return and covariance based on historical data – though we do lose the theoretical guarantees provided by Markowitz, the closer our estimates are to the real values, the better our portfolio will be.
 
 Thus this project provides four major sets of functionality (though of course they are intimately related)
 
