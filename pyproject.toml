@@ -107,3 +107,9 @@ select = ["F", "I"]
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+known-first-party = ["pypfopt"]
+combine-as-imports = true
+force-sort-within-sections = true
