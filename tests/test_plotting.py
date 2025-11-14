@@ -7,14 +7,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pypfopt import (
-    CLA,
-    EfficientFrontier,
-    HRPOpt,
-    expected_returns,
-    plotting,
-    risk_models,
-)
+from pypfopt import (CLA, EfficientFrontier, HRPOpt, expected_returns,
+                     plotting, risk_models)
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
 

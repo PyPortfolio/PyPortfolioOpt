@@ -5,12 +5,9 @@ import pandas as pd
 
 from pypfopt import expected_returns, risk_models
 from pypfopt.cla import CLA
-from pypfopt.efficient_frontier import (
-    EfficientCDaR,
-    EfficientCVaR,
-    EfficientFrontier,
-    EfficientSemivariance,
-)
+from pypfopt.efficient_frontier import (EfficientCDaR, EfficientCVaR,
+                                        EfficientFrontier,
+                                        EfficientSemivariance)
 
 
 def resource(name):

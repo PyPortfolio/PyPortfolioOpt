@@ -2,13 +2,8 @@ import cvxpy as cp
 import numpy as np
 import pytest
 
-from pypfopt import (
-    EfficientFrontier,
-    exceptions,
-    expected_returns,
-    objective_functions,
-    risk_models,
-)
+from pypfopt import (EfficientFrontier, exceptions, expected_returns,
+                     objective_functions, risk_models)
 from pypfopt.base_optimizer import BaseConvexOptimizer
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
