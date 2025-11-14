@@ -79,3 +79,11 @@ runs:
         else
           echo "No pyproject.toml found, skipping package installation"
         fi
+
+    - name: Show dependencies
+      shell: bash
+      run: uv pip list
+
+    - name: Show Python version
+      shell: bash
+      run: uv run python -c "import sys; print(sys.version)"

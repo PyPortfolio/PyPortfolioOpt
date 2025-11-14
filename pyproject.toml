@@ -55,7 +55,7 @@ all_extras = [
     "plotly>=5.0.0,<6",
     "scikit-learn>=0.24.1",
     "ecos>=2.0.14,<2.1",
-    "plotly>=5.0.0,<6",
+    "plotly>=5.0.0,<7",
     "cvxopt; python_version < '3.14'",
 ]
 
@@ -64,6 +64,12 @@ dev = [
     "pytest>=9.0.0",
     "pytest-cov>=7.0.0",
     "yfinance>=0.2.66",
+]
+
+# notebook tests
+notebook_test = [
+    "nbmake",
+    "pytest-rerunfailures",
 ]
 
 [project.urls]
