@@ -2,8 +2,13 @@ import numpy as np
 import pytest
 from cvxpy.error import SolverError
 
-from pypfopt import (EfficientFrontier, EfficientSemivariance,
-                     expected_returns, objective_functions, risk_models)
+from pypfopt import (
+    EfficientFrontier,
+    EfficientSemivariance,
+    expected_returns,
+    objective_functions,
+    risk_models,
+)
 from tests.utilities_for_tests import get_data, setup_efficient_semivariance
 
 

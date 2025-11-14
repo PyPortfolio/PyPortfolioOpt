@@ -6,11 +6,19 @@ import pandas as pd
 import pytest
 import scipy.optimize as sco
 
-from pypfopt import (EfficientFrontier, exceptions, expected_returns,
-                     objective_functions, risk_models)
-from tests.utilities_for_tests import (get_cov_matrix, get_data,
-                                       setup_efficient_frontier,
-                                       simple_ef_weights)
+from pypfopt import (
+    EfficientFrontier,
+    exceptions,
+    expected_returns,
+    objective_functions,
+    risk_models,
+)
+from tests.utilities_for_tests import (
+    get_cov_matrix,
+    get_data,
+    setup_efficient_frontier,
+    simple_ef_weights,
+)
 
 
 def test_data_source():
