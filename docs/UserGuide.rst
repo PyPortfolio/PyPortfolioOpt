@@ -46,7 +46,7 @@ This dataset should look something like the one below::
 
 The index should consist of dates or timestamps, and each column should represent the
 time series of prices for an asset. A dataset of real-life stock prices has been
-included in the `tests folder <https://github.com/robertmartin8/PyPortfolioOpt/tree/master/tests>`_
+included in the `tests folder <https://github.com/pyportfolio/pyportfolioopt/tree/main/tests>`_
 of the GitHub repo.
 
 .. note::
@@ -301,7 +301,7 @@ in the sidebar to learn more about the parameters and theoretical details of the
 different models offered by PyPortfolioOpt. If you have any questions, please
 raise an issue on GitHub and I will try to respond promptly.
 
-If you'd like even more examples, check out the cookbook `recipe <https://github.com/robertmartin8/PyPortfolioOpt/blob/master/cookbook/2-Mean-Variance-Optimization.ipynb>`_.
+If you'd like even more examples, check out the cookbook `recipe <https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/cookbook/2-Mean-Variance-Optimization.ipynb>`_.
 
 
 References

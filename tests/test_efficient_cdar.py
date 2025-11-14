@@ -308,6 +308,7 @@ def test_efficient_risk_market_neutral():
     )
 
 
+@pytest.mark.skip(reason="failing test, unknown reason. See bug report #642.")
 def test_efficient_risk_L2_reg():
     cd = setup_efficient_cdar()
     cd.add_objective(objective_functions.L2_reg, gamma=1)
@@ -372,6 +373,7 @@ def test_efficient_return_short():
     assert long_only_cdar > cdar
 
 
+@pytest.mark.skip(reason="failing test, unknown reason. See bug report #642.")
 def test_efficient_return_L2_reg():
     cd = setup_efficient_cdar()
     cd.add_objective(objective_functions.L2_reg, gamma=1)

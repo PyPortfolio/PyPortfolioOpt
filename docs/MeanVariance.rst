@@ -32,7 +32,7 @@ language for convex optimization upon which PyPortfolioOpt's efficient frontier 
 
 .. tip::
 
-    You can find complete examples in the relevant cookbook `recipe <https://github.com/robertmartin8/PyPortfolioOpt/blob/master/cookbook/2-Mean-Variance-Optimization.ipynb>`_.
+    You can find complete examples in the relevant cookbook `recipe <https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/cookbook/2-Mean-Variance-Optimization.ipynb>`_.
 
 
 Structure

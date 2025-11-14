@@ -7,7 +7,7 @@
 
     <meta prefix="og: http://ogp.me/ns#" property="og:title" content="PyPortfolioOpt" />
     <meta prefix="og: http://ogp.me/ns#" property="og:description" content="Portfolio optimization in python" />
-    <meta prefix="og: http://ogp.me/ns#" property="og:image" content="https://github.com/robertmartin8/PyPortfolioOpt/blob/master/media/logo_v1.png"/>
+    <meta prefix="og: http://ogp.me/ns#" property="og:image" content="https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/media/logo_v1.png"/>
 
     <embed>
         <p align="center">
@@ -20,7 +20,7 @@
             <a href="https://opensource.org/licenses/MIT">
                 <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg"
                     alt="MIT license"></a> &nbsp;
-            <a href="https://github.com/robertmartin8/PyPortfolioOpt/graphs/commit-activity">
+            <a href="https://github.com/pyportfolio/pyportfolioopt/graphs/commit-activity">
                 <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg"
                     alt="MIT license"></a> &nbsp;
             <a style="border-width:0" href="https://doi.org/10.21105/joss.03066">
@@ -47,7 +47,7 @@ Installation
 ============
 
 If you would like to play with PyPortfolioOpt interactively in your browser, you may launch Binder
-`here <https://mybinder.org/v2/gh/robertmartin8/pyportfolioopt/master/?filepath=cookbook>`__. It takes a
+`here <https://mybinder.org/v2/gh/pyportfolio/pyportfolioopt/main/?filepath=cookbook>`__. It takes a
 while to set up, but it lets you try out the cookbook recipes without having to install anything.
 
 Prior to installing PyPortfolioOpt, you need to install C++. On macOS, this means that you need
@@ -84,7 +84,7 @@ Thanks to Thomas Schmelzer, PyPortfolioOpt now supports Docker (requires
 
 .. note::
     If any of these methods don't work, please `raise an issue
-    <https://github.com/robertmartin8/PyPortfolioOpt/issues>`_ with the 'packaging' label on GitHub
+    <https://github.com/pyportfolio/pyportfolioopt/issues>`_ with the 'packaging' label on GitHub
 
 
 
@@ -97,14 +97,14 @@ source code
 
 .. code-block:: text
 
-    git clone https://github.com/robertmartin8/PyPortfolioOpt
+    git clone https://github.com/pyportfolio/pyportfolioopt
 
 Alternatively, if you still want the convenience of a global ``from pypfopt import x``,
 you should try
 
 .. code-block:: text
 
-    pip install -e git+https://github.com/robertmartin8/PyPortfolioOpt.git
+    pip install -e git+https://github.com/pyportfolio/pyportfolioopt.git
 
 
 A Quick Example
@@ -112,7 +112,7 @@ A Quick Example
 
 This section contains a quick look at what PyPortfolioOpt can do. For a guided tour,
 please check out the :ref:`user-guide`. For even more examples, check out the Jupyter
-notebooks in the `cookbook <https://github.com/robertmartin8/PyPortfolioOpt/tree/master/cookbook>`_.
+notebooks in the `cookbook <https://github.com/pyportfolio/pyportfolioopt/tree/main/cookbook>`_.
 
 If you already have expected returns ``mu`` and a risk model ``S`` for your set of
 assets, generating an optimal portfolio is as easy as::

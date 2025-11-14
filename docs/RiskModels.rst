@@ -146,7 +146,7 @@ the following shrinkage methods:
 
 My implementations have been translated from the Matlab code on
 `Michael Wolf's webpage <https://www.econ.uzh.ch/en/people/faculty/wolf/publications.html>`_, with
-the help of `xtuanta <https://github.com/robertmartin8/PyPortfolioOpt/issues/20>`_. 
+the help of `xtuanta <https://github.com/pyportfolio/pyportfolioopt/issues/20>`_. 
 
 
 .. autoclass:: CovarianceShrinkage

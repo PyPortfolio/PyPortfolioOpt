@@ -288,13 +288,13 @@ Began migration to cvxpy by changing the discrete allocation backend from PuLP t
 - New algorithm: ML de Prado's CLA
 - New algorithms for converting continuous allocation to discrete (using linear
   programming).
-- Merged a `PR <https://github.com/robertmartin8/PyPortfolioOpt/pull/22>`__ implementing Single Factor and
+- Merged a `PR <https://github.com/pyportfolio/pyportfolioopt/pull/22>`__ implementing Single Factor and
   Constant Correlation shrinkage.
 
 0.3.1
 -----
 
-Merged `PR <https://github.com/robertmartin8/PyPortfolioOpt/pull/23>`__ from `TommyBark <https://github.com/TommyBark>`_ 
+Merged `PR <https://github.com/pyportfolio/pyportfolioopt/pull/23>`__ from `TommyBark <https://github.com/TommyBark>`_ 
 fixing a bug in the arguments of a call to ``portfolio_performance``.
 
 0.3.3

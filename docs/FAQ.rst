@@ -36,7 +36,7 @@ for small problems with less than 1000 variables and constraints, you can use th
     ef.min_volatility()
 
 This does not play well with ``max_sharpe``, and needs to be modified for different bounds.
-See `this issue <https://github.com/robertmartin8/PyPortfolioOpt/issues/243>`_ for further discussion.
+See `this issue <https://github.com/pyportfolio/pyportfolioopt/issues/243>`_ for further discussion.
 
 Tracking error
 --------------

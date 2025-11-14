@@ -103,7 +103,7 @@ thought of as the average of losses that occur on "very bad days", where "very b
 :math:`\beta`.
 
 For example, if we calculate the CVaR to be 10% for :math:`\beta = 0.95`, we can be 95% confident that the worst-case
-average daily loss will be 3%. Put differently, the CVaR is the average of all losses so severe that they only occur
+average daily loss will be 10%. Put differently, the CVaR is the average of all losses so severe that they only occur
 :math:`(1-\beta)\%` of the time. 
 
 While CVaR is quite an intuitive concept, a lot of new notation is required to formulate it mathematically (see
@@ -229,7 +229,7 @@ You can either optimize some generic ``convex_objective``
 (which *must* be built using ``cvxpy`` atomic functions -- see `here <https://www.cvxpy.org/tutorial/functions/index.html>`_)
 or a ``nonconvex_objective``, which uses ``scipy.optimize`` as the backend and thus has a completely
 different API. For more examples, check out this `cookbook recipe
-<https://github.com/robertmartin8/PyPortfolioOpt/blob/master/cookbook/3-Advanced-Mean-Variance-Optimization.ipynb>`_.
+<https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/cookbook/3-Advanced-Mean-Variance-Optimization.ipynb>`_.
 
     .. class:: pypfopt.base_optimizer.BaseConvexOptimizer
 
