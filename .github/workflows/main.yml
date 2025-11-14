@@ -90,3 +90,100 @@ jobs:
       - name: Test with pytest
         run: |
           pytest ./tests
+
+  codecov:
+    name: py${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: code-quality
+    env:
+      MPLBACKEND: Agg # https://github.com/orgs/community/discussions/26434
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+
+      - name: Install dependencies
+        shell: bash
+        run: uv pip install ".[dev,all_extras]" --no-cache-dir
+        env:
+          UV_SYSTEM_PYTHON: 1
+
+      - name: Show dependencies
+        run: uv pip list
+
+      - name: Generate coverage report
+        run: |
+          pip install pytest pytest-cov
+          pytest --cov=./ --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        # if false in order to skip for now
+        if: false
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: true
+
+  notebooks:
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    strategy:
+      matrix:
+        python-version: [ '3.10', '3.11', '3.12', '3.13', '3.14' ]
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+
+    - name: Install dependencies
+      shell: bash
+      run: uv pip install ".[dev,all_extras,notebook_test]" --no-cache-dir
+      env:
+        UV_SYSTEM_PYTHON: 1
+
+    - name: Show dependencies
+      run: uv pip list
+
+    # Discover all notebooks
+    - name: Collect notebooks
+      id: notebooks
+      shell: bash
+      run: |
+        NOTEBOOKS=$(find cookbook -name '*.ipynb' -print0 | xargs -0 echo)
+        echo "notebooks=$NOTEBOOKS" >> $GITHUB_OUTPUT
+
+    # Run all discovered notebooks with nbmake
+    - name: Test notebooks
+      shell: bash
+      run: |
+        uv run pytest --reruns 3 --nbmake --nbmake-timeout=3600 -vv ${{ steps.notebooks.outputs.notebooks }}
