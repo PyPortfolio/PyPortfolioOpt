@@ -58,12 +58,12 @@ def test_dendrogram_plot():
 
     ax = plotting.plot_dendrogram(hrp, showfig=False)
     assert len(ax.findobj()) > 180
-    assert type(ax.findobj()[0]) == matplotlib.collections.LineCollection
+    assert isinstance(ax.findobj()[0], matplotlib.collections.LineCollection)
     plt.clf()
 
     ax = plotting.plot_dendrogram(hrp, show_tickers=False, showfig=False)
     assert len(ax.findobj()) > 60
-    assert type(ax.findobj()[0]) == matplotlib.collections.LineCollection
+    assert isinstance(ax.findobj()[0], matplotlib.collections.LineCollection)
     plt.clf()
     plt.close()
 
@@ -78,7 +78,7 @@ def test_dendrogram_plot():
             == "hrp param has not been optimized.  Attempting optimization."
         )
         assert len(ax.findobj()) > 60
-        assert type(ax.findobj()[0]) == matplotlib.collections.LineCollection
+        assert isinstance(ax.findobj()[0], matplotlib.collections.LineCollection)
     plt.clf()
     plt.close()
 

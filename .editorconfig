@@ -1,0 +1,36 @@
+# This file is part of the tschm/.config-templates repository
+# (https://github.com/tschm/.config-templates).
+#
+root = true
+
+# Default settings for all files
+[*]
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+charset = utf-8
+
+# Python, reStructuredText, and text files
+[*.{py,rst,txt}]
+indent_style = space
+indent_size = 4
+
+# YAML, JSON, and other config files
+[*.{yml,yaml,json}]
+indent_style = space
+indent_size = 2
+
+# Markdown files
+# [*.{md,markdown}]
+# trim_trailing_whitespace = false
+
+# Don't apply editorconfig rules to vendor/ resources
+# This is a "defensive" rule for the day we may have
+# the vendor folder
+[vendor/**]
+charset = unset
+end_of_line = unset
+indent_size = unset
+indent_style = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
