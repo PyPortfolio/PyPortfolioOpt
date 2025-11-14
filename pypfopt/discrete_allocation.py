@@ -4,10 +4,12 @@ offers multiple methods to generate a discrete portfolio allocation from continu
 """
 
 import collections
+from warnings import warn
 
 import cvxpy as cp
 import numpy as np
 import pandas as pd
+from skbase.utils.dependencies import _check_soft_dependencies
 
 from . import exceptions
 
@@ -252,7 +254,8 @@ class DiscreteAllocation:
             self._allocation_rmse_error(verbose)
         return self.allocation, available_funds
 
-    def lp_portfolio(self, reinvest=False, verbose=False, solver="ECOS_BB"):
+    # todo 1.7.0: remove ECOS_BB defaulting behavior from docstring
+    def lp_portfolio(self, reinvest=False, verbose=False, solver=None):
         """
         Convert continuous weights into a discrete portfolio allocation
         using integer programming.
@@ -262,11 +265,23 @@ class DiscreteAllocation:
         :param verbose: print error analysis?
         :type verbose: bool
         :param solver: the CVXPY solver to use (must support mixed-integer programs)
-        :type solver: str, defaults to "ECOS_BB"
+        :type solver: str, defaults to "ECOS_BB" if ecos is installed, else None
         :return: the number of shares of each ticker that should be purchased, along with the amount
                 of funds leftover.
         :rtype: (dict, float)
         """
+        # todo 1.7.0: remove this defaulting behavior
+        if solver is None and _check_soft_dependencies("ecos", severity="none"):
+            solver = "ECOS_BB"
+            warn(
+                "The default solver for lp_portfolio will change from ECOS_BB to"
+                "None, the cvxpy default solver, in release 1.7.0."
+                "To continue using ECOS_BB as the solver, "
+                "please set solver='ECOS_BB' explicitly.",
+                FutureWarning,
+            )
+        # end todo
+
         if any([w < 0 for _, w in self.weights]):
             longs = {t: w for t, w in self.weights if w >= 0}
             shorts = {t: -w for t, w in self.weights if w < 0}

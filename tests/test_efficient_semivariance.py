@@ -1,6 +1,7 @@
+from cvxpy.error import SolverError
 import numpy as np
 import pytest
-from cvxpy.error import SolverError
+from skbase.utils.dependencies import _check_soft_dependencies
 
 from pypfopt import (
     EfficientFrontier,
@@ -176,6 +177,10 @@ def test_min_semivariance_extra_constraints():
     assert w["GOOG"] >= 0.025 and w["AAPL"] <= 0.035
 
 
+@pytest.mark.skipif(
+    not _check_soft_dependencies(["ecos"], severity="none"),
+    reason="skip test if ecos is not installed in environment",
+)
 def test_min_semivariance_different_solver():
     es = setup_efficient_semivariance(solver="ECOS")
     w = es.min_semivariance()
@@ -347,6 +352,10 @@ def test_max_quadratic_utility_with_shorts():
     )
 
 
+@pytest.mark.skipif(
+    not _check_soft_dependencies(["ecos"], severity="none"),
+    reason="skip test if ecos is not installed in environment",
+)
 def test_max_quadratic_utility_market_neutral():
     es = setup_efficient_semivariance(solver="ECOS", weight_bounds=(-1, 1))
     es.max_quadratic_utility(market_neutral=True)

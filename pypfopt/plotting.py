@@ -16,10 +16,15 @@ import scipy.cluster.hierarchy as sch
 
 from . import CLA, EfficientFrontier, exceptions, risk_models
 
-try:
-    import matplotlib.pyplot as plt
-except (ModuleNotFoundError, ImportError):  # pragma: no cover
-    raise ImportError("Please install matplotlib via pip or poetry")
+
+def _import_matplotlib():
+    """Helper function to import matplotlib only when needed"""
+    try:
+        import matplotlib.pyplot as plt
+
+        return plt
+    except (ModuleNotFoundError, ImportError):  # pragma: no cover
+        raise ImportError("Please install matplotlib via pip or poetry")
 
 
 def _get_plotly():
@@ -46,6 +51,8 @@ def _plot_io(**kwargs):
     :param showfig: whether to plt.show() the figure, defaults to False
     :type showfig: bool, optional
     """
+    plt = _import_matplotlib()
+
     filename = kwargs.get("filename", None)
     showfig = kwargs.get("showfig", False)
     dpi = kwargs.get("dpi", 300)
@@ -73,6 +80,8 @@ def plot_covariance(cov_matrix, plot_correlation=False, show_tickers=True, **kwa
     :return: matplotlib axis
     :rtype: matplotlib.axes object
     """
+    plt = _import_matplotlib()
+
     if plot_correlation:
         matrix = risk_models.cov_to_corr(cov_matrix)
     else:
@@ -110,6 +119,8 @@ def plot_dendrogram(hrp, ax=None, show_tickers=True, **kwargs):
     :return: matplotlib axis
     :rtype: matplotlib.axes object
     """
+    plt = _import_matplotlib()
+
     ax = ax or plt.gca()
 
     if hrp.clusters is None:
@@ -337,6 +348,8 @@ def plot_efficient_frontier(
     :return: matplotlib axis
     :rtype: matplotlib.axes object
     """
+    plt = _import_matplotlib()
+
     if interactive:
         go, _ = _get_plotly()
         ax = go.Figure()
@@ -393,6 +406,8 @@ def plot_weights(weights, ax=None, **kwargs):
     :return: matplotlib axis
     :rtype: matplotlib.axes
     """
+    plt = _import_matplotlib()
+
     ax = ax or plt.gca()
 
     desc = sorted(weights.items(), key=lambda x: x[1], reverse=True)
