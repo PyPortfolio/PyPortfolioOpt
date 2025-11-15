@@ -15,7 +15,8 @@ RESET := \033[0m
 .DEFAULT_GOAL := help
 
 # Declare phony targets (they don't produce files)
-.PHONY: install-task
+.PHONY: install-task install clean test fmt
+
 
 UV_INSTALL_DIR := "./bin"
 
@@ -27,6 +28,19 @@ install-task: ## ensure go-task (Taskfile) is installed
 		printf "$(BLUE)Installing go-task (Taskfile)$(RESET)\n"; \
 		curl --location https://taskfile.dev/install.sh | sh -s -- -d -b ${UV_INSTALL_DIR}; \
 	fi
+
+install: install-task ## install
+	@./bin/task build:install --silent
+
+clean: install-task ## clean
+	@./bin/task cleanup:clean --silent
+
+##@ Development and Testing
+test: install-task ## run all tests
+	@./bin/task docs:test --silent
+
+fmt: install-task ## check the pre-commit hooks and the linting
+	@./bin/task quality:lint --silent
 
 ##@ Meta
 help: ## Display this help message
