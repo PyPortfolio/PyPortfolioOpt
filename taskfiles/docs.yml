@@ -1,6 +1,3 @@
-# This file is part of the tschm/.config-templates repository
-# (https://github.com/tschm/.config-templates).
-#
 # Taskfile: Documentation and testing tasks
 #
 # Purpose: Provide tasks to run tests, generate API docs, export Marimo notebooks,
