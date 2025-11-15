@@ -17,7 +17,6 @@ RESET := \033[0m
 # Declare phony targets (they don't produce files)
 .PHONY: install-task install clean test fmt
 
-
 UV_INSTALL_DIR := "./bin"
 
 ##@ Bootstrap
@@ -41,6 +40,7 @@ test: install-task ## run all tests
 
 fmt: install-task ## check the pre-commit hooks and the linting
 	@./bin/task quality:lint --silent
+
 
 ##@ Meta
 help: ## Display this help message
