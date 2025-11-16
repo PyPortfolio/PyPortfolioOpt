@@ -142,7 +142,7 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
         Helper method to validate daily returns (needed for some efficient frontiers)
         """
         if not isinstance(returns, (pd.DataFrame, np.ndarray)):
-            raise TypeError("returns should be a pd.Dataframe or np.ndarray")
+            raise TypeError("returns should be a pd.DataFrame or np.ndarray")
 
         returns_df = pd.DataFrame(returns)
         if returns_df.isnull().values.any():
@@ -163,10 +163,10 @@ class EfficientFrontier(base_optimizer.BaseConvexOptimizer):
     def _make_weight_sum_constraint(self, is_market_neutral):
         """
         Helper method to make the weight sum constraint. If market neutral,
-        validate the weights proided in the constructor.
+        validate the weights provided in the constructor.
         """
         if is_market_neutral:
-            #  Check and fix bounds
+            # Check and fix bounds
             portfolio_possible = np.any(self._lower_bounds < 0)
             if not portfolio_possible:
                 warnings.warn(
