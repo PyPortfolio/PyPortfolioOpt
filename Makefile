@@ -1,4 +1,4 @@
-## Makefile for config-templates: developer tasks orchestrated via go-task
+## Makefile for PyPortfolioOpt: developer tasks orchestrated via go-task
 #
 # This Makefile wraps the Taskfile.yml commands and provides a friendly
 # `make help` index. Lines with `##` after a target are parsed into help text,
