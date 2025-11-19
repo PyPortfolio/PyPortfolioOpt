@@ -3,12 +3,10 @@
 # Purpose: Provide build-related utilities for Python projects using uv, including:
 #   - Installing uv and uvx into a local ./bin directory
 #   - Creating a virtual environment and syncing dependencies
-#   - Building the package with Hatch when a pyproject.toml is present
 #
 # Components:
 #   - uv: install uv/uvx if missing
 #   - install: create venv and install dependencies (if pyproject.toml exists)
-#   - build: build the package with Hatch (if pyproject.toml exists)
 
 version: '3'
 
@@ -53,17 +51,4 @@ tasks:
           ./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
         else
           printf "${YELLOW}[WARN] No pyproject.toml found, skipping install${RESET}\n"
-        fi
-
-  build:
-    desc: Build the package using hatch
-    deps: [install]
-    cmds:
-      - |
-        if [ -f "pyproject.toml" ]; then
-          printf "${BLUE}[INFO] Building package...${RESET}\n"
-          ./bin/uv pip install hatch
-          ./bin/uv run hatch build
-        else
-          printf "${YELLOW}[WARN] No pyproject.toml found, skipping build${RESET}\n"
         fi
