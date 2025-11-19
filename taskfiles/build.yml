@@ -42,13 +42,6 @@ tasks:
         # Create the virtual environment
         ./bin/uv venv --python 3.12 || { printf "${RED}[ERROR] Failed to create virtual environment${RESET}\n"; exit 1; }
 
-        if [ -f "tests/requirements.txt" ]; then
-          ./bin/uv pip install -r tests/requirements.txt || { printf "${RED}[ERROR] Failed to install test requirements${RESET}\n"; exit 1; }
-        fi
+        printf "${BLUE}[INFO] Installing dependencies${RESET}\n"
+        ./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
 
-        if [ -f "pyproject.toml" ]; then
-          printf "${BLUE}[INFO] Installing dependencies${RESET}\n"
-          ./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
-        else
-          printf "${YELLOW}[WARN] No pyproject.toml found, skipping install${RESET}\n"
-        fi
