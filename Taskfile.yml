@@ -16,7 +16,6 @@ silent: true
 # Variables
 vars:
   TESTS_FOLDER: tests
-  MARIMO_FOLDER: book/marimo
   BOOK_TITLE: '{{env "REPO_NAME"}}'   # defined below env section
   BOOK_SUBTITLE: 'Documentation and Reports'
   OPTIONS: ''
@@ -35,11 +34,6 @@ env:
   # Set repository name
   REPO_NAME:
     sh: basename $(pwd)
-
-  #LOG_INFO: 'printf "${BLUE}[INFO] %s${RESET}\n"'
-  #LOG_SUCCESS: 'printf "${GREEN}[SUCCESS] %s${RESET}\n"'
-  #LOG_ERROR: 'printf "${RED}[ERROR] %s${RESET}\n"'
-
 
 # Include task groups
 includes:
