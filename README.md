@@ -73,7 +73,7 @@ Head over to the **[documentation on ReadTheDocs](https://pyportfolioopt.readthe
 
 ### Using pip
 
-```
+```bash
 pip install pyportfolioopt
 ```
 
@@ -81,7 +81,7 @@ pip install pyportfolioopt
 
 Clone the repository, navigate to the folder, and install using pip:
 
-```
+```bash
 git clone https://github.com/PyPortfolio/PyPortfolioOpt.git
 cd PyPortfolioOpt
 pip install .
@@ -138,30 +138,6 @@ PFE: 0.2039
 JPM: 0.0000
 SBUX: 0.0173
 ```
-
-GOOG: 0.0000
-AAPL: 0.1749
-FB: 0.0503
-BABA: 0.0951
-AMZN: 0.0000
-GE: 0.0000
-AMD: 0.0000
-WMT: 0.0000
-BAC: 0.0000
-GM: 0.0000
-T: 0.5235
-UAA: 0.0000
-SHLD: 0.0000
-XOM: 0.1298
-RRC: 0.0000
-BBY: 0.0000
-MA: 0.0000
-PFE: 0.0264
-JPM: 0.0000
-SBUX: 0.0000
-***
-```
->>
 
 ```python
 exp_return, volatility, sharpe=ef.portfolio_performance(verbose=True)
@@ -291,8 +267,6 @@ The covariance matrix encodes not just the volatility of an asset, but also how 
 
 - Long/short: by default all of the mean-variance optimization methods in PyPortfolioOpt are long-only, but they can be initialised to allow for short positions by changing the weight bounds:
 
-<!--pytest-codeblocks:cont-->
-
 ```python
 ef = EfficientFrontier(mu, S, weight_bounds=(-1, 1))
 ```
@@ -301,8 +275,6 @@ ef = EfficientFrontier(mu, S, weight_bounds=(-1, 1))
 ```
 
 - Market neutrality: for the `efficient_risk` and `efficient_return` methods, PyPortfolioOpt provides an option to form a market-neutral portfolio (i.e weights sum to zero). This is not possible for the max Sharpe portfolio and the min volatility portfolio because in those cases because they are not invariant with respect to leverage. Market neutrality requires negative weights:
-
-<!--pytest-codeblocks:cont-->
 
 ```python
 ef = EfficientFrontier(mu, S, weight_bounds=(-1, 1))
@@ -335,20 +307,17 @@ SBUX: 0.0330
 
 - Minimum/maximum position size: it may be the case that you want no security to form more than 10% of your portfolio. This is easy to encode:
 
-<!--pytest-codeblocks:cont-->
-
 ```python
 ef = EfficientFrontier(mu, S, weight_bounds=(0, 0.1))
 ```
 
 ```result
 ```
+
 One issue with mean-variance optimization is that it leads to many zero-weights. While these are
 "optimal" in-sample, there is a large body of research showing that this characteristic leads
 mean-variance portfolios to underperform out-of-sample. To that end, I have introduced an
 objective function that can reduce the number of negligible weights for any of the objective functions. Essentially, it adds a penalty (parameterised by `gamma`) on small weights, with a term that looks just like L2 regularisation in machine learning. It may be necessary to try several `gamma` values to achieve the desired number of non-negligible weights. For the test portfolio of 20 securities, `gamma ~ 1` is sufficient
-
-<!--pytest-codeblocks:cont-->
 
 ```python
 from pypfopt import objective_functions
@@ -388,8 +357,6 @@ a prior estimate of returns (e.g the market-implied returns) with your own views
 posterior estimate. This results in much better estimates of expected returns than just using
 the mean historical return. Check out the [docs](https://pyportfolioopt.readthedocs.io/en/latest/BlackLitterman.html) for a discussion of the theory, as well as advice
 on formatting inputs.
-
-<!--pytest-codeblocks:cont-->
 
 ```python
 from pypfopt import risk_models, BlackLittermanModel
@@ -528,5 +495,7 @@ Special shout-outs to:
 - Aditya Bhutra
 - Thomas Schmelzer
 - Rich Caputo
+- Franz Kiraly
+
 - Nicolas Knudde
 - Franz Kiraly
