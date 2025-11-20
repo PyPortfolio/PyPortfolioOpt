@@ -73,7 +73,7 @@ Head over to the **[documentation on ReadTheDocs](https://pyportfolioopt.readthe
 
 ### Using pip
 
-```bash
+```
 pip install pyportfolioopt
 ```
 
@@ -81,7 +81,7 @@ pip install pyportfolioopt
 
 Clone the repository, navigate to the folder, and install using pip:
 
-```bash
+```
 git clone https://github.com/PyPortfolio/PyPortfolioOpt.git
 cd PyPortfolioOpt
 pip install .
@@ -89,8 +89,8 @@ pip install .
 
 ## Getting started
 
-Here is an example on real life stock data, 
-demonstrating how easy it is to find the long-only portfolio 
+Here is an example on real life stock data,
+demonstrating how easy it is to find the long-only portfolio
 that maximises the Sharpe ratio (a measure of risk-adjusted returns).
 
 ```python
@@ -111,82 +111,119 @@ ef = EfficientFrontier(mu, S)
 raw_weights = ef.max_sharpe()
 cleaned_weights = ef.clean_weights()
 ef.save_weights_to_file("weights.csv")  # saves to file
-print(cleaned_weights)
-ef.portfolio_performance(verbose=True)
+
+for name, value in cleaned_weights.items():
+    print(f"{name}: {value:.4f}")
 ```
 
-This outputs the following weights:
-
-```txt
-{'GOOG': 0.03835,
- 'AAPL': 0.0689,
- 'FB': 0.20603,
- 'BABA': 0.07315,
- 'AMZN': 0.04033,
- 'GE': 0.0,
- 'AMD': 0.0,
- 'WMT': 0.0,
- 'BAC': 0.0,
- 'GM': 0.0,
- 'T': 0.0,
- 'UAA': 0.0,
- 'SHLD': 0.0,
- 'XOM': 0.0,
- 'RRC': 0.0,
- 'BBY': 0.01324,
- 'MA': 0.35349,
- 'PFE': 0.1957,
- 'JPM': 0.0,
- 'SBUX': 0.01082}
-
-Expected annual return: 30.5%
-Annual volatility: 22.2%
-Sharpe Ratio: 1.28
+```result
+GOOG: 0.0458
+AAPL: 0.0674
+FB: 0.2008
+BABA: 0.0849
+AMZN: 0.0352
+GE: 0.0000
+AMD: 0.0000
+WMT: 0.0000
+BAC: 0.0000
+GM: 0.0000
+T: 0.0000
+UAA: 0.0000
+SHLD: 0.0000
+XOM: 0.0000
+RRC: 0.0000
+BBY: 0.0159
+MA: 0.3287
+PFE: 0.2039
+JPM: 0.0000
+SBUX: 0.0173
 ```
 
-This is interesting but not useful in itself. 
-However, PyPortfolioOpt provides a method which allows you to 
-convert the above continuous weights to an actual allocation 
+GOOG: 0.0000
+AAPL: 0.1749
+FB: 0.0503
+BABA: 0.0951
+AMZN: 0.0000
+GE: 0.0000
+AMD: 0.0000
+WMT: 0.0000
+BAC: 0.0000
+GM: 0.0000
+T: 0.5235
+UAA: 0.0000
+SHLD: 0.0000
+XOM: 0.1298
+RRC: 0.0000
+BBY: 0.0000
+MA: 0.0000
+PFE: 0.0264
+JPM: 0.0000
+SBUX: 0.0000
+***
+```
+>>
+
+```python
+exp_return, volatility, sharpe=ef.portfolio_performance(verbose=True)
+
+round(exp_return, 4), round(volatility, 4), round(sharpe, 4)
+```
+
+```result
+Expected annual return: 29.9%
+Annual volatility: 21.8%
+Sharpe Ratio: 1.38
+```
+
+This is interesting but not useful in itself.
+However, PyPortfolioOpt provides a method which allows you to
+convert the above continuous weights to an actual allocation
 that you could buy. Just enter the most recent prices, and the desired portfolio size ($10,000 in this example):
 
 ```python
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 
-
 latest_prices = get_latest_prices(df)
 
-da = DiscreteAllocation(weights, latest_prices, total_portfolio_value=10000)
+da = DiscreteAllocation(cleaned_weights, latest_prices, total_portfolio_value=10000)
 allocation, leftover = da.greedy_portfolio()
-print("Discrete allocation:", allocation)
+for name, value in allocation.items():
+    print(f"{name}: {value}")
+
 print("Funds remaining: ${:.2f}".format(leftover))
 ```
 
-```txt
-12 out of 20 tickers were removed
-Discrete allocation: {'GOOG': 1, 'AAPL': 4, 'FB': 12, 'BABA': 4, 'BBY': 2,
-                      'MA': 20, 'PFE': 54, 'SBUX': 1}
-Funds remaining: $11.89
+```result
+MA: 19
+PFE: 57
+FB: 12
+BABA: 4
+AAPL: 4
+GOOG: 1
+SBUX: 2
+BBY: 2
+Funds remaining: $17.46
 ```
 
-_Disclaimer: nothing about this project constitues investment advice, 
-and the author bears no responsibiltiy for your subsequent investment decisions. 
+_Disclaimer: nothing about this project constitues investment advice,
+and the author bears no responsibiltiy for your subsequent investment decisions.
 Please refer to the [license](https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/LICENSE.txt) for more information._
 
 ## An overview of classical portfolio optimization methods
 
-Harry Markowitz's 1952 paper is the undeniable classic, 
-which turned portfolio optimization from an art into a science. 
-The key insight is that by combining assets with different expected returns and volatilities, 
-one can decide on a mathematically optimal allocation which minimises 
+Harry Markowitz's 1952 paper is the undeniable classic,
+which turned portfolio optimization from an art into a science.
+The key insight is that by combining assets with different expected returns and volatilities,
+one can decide on a mathematically optimal allocation which minimises
 the risk for a target return – the set of all such optimal portfolios is referred to as the **efficient frontier**.
 
 <center>
 <img src="https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/media/efficient_frontier_white.png?raw=true" style="width:60%;"/>
 </center>
 
-Although much development has been made in the subject, more than half a century later, 
+Although much development has been made in the subject, more than half a century later,
 Markowitz's core ideas are still fundamentally important and see daily use in many portfolio management firms.
-The main drawback of mean-variance optimization is that the theoretical 
+The main drawback of mean-variance optimization is that the theoretical
 treatment requires knowledge of the expected returns and the future risk-characteristics (covariance) of the assets. Obviously, if we knew the expected returns of a stock life would be much easier, but the whole game is that stock returns are notoriously hard to forecast. As a substitute, we can derive estimates of the expected return and covariance based on historical data – though we do lose the theoretical guarantees provided by Markowitz, the closer our estimates are to the real values, the better our portfolio will be.
 
 Thus this project provides four major sets of functionality (though of course they are intimately related)
@@ -254,32 +291,94 @@ The covariance matrix encodes not just the volatility of an asset, but also how 
 
 - Long/short: by default all of the mean-variance optimization methods in PyPortfolioOpt are long-only, but they can be initialised to allow for short positions by changing the weight bounds:
 
+<!--pytest-codeblocks:cont-->
+
 ```python
 ef = EfficientFrontier(mu, S, weight_bounds=(-1, 1))
+```
+
+```result
 ```
 
 - Market neutrality: for the `efficient_risk` and `efficient_return` methods, PyPortfolioOpt provides an option to form a market-neutral portfolio (i.e weights sum to zero). This is not possible for the max Sharpe portfolio and the min volatility portfolio because in those cases because they are not invariant with respect to leverage. Market neutrality requires negative weights:
 
+<!--pytest-codeblocks:cont-->
+
 ```python
 ef = EfficientFrontier(mu, S, weight_bounds=(-1, 1))
-ef.efficient_return(target_return=0.2, market_neutral=True)
+for name, value in ef.efficient_return(target_return=0.2, market_neutral=True).items():
+    print(f"{name}: {value:.4f}")
+```
+
+```result
+GOOG: 0.0747
+AAPL: 0.0532
+FB: 0.0664
+BABA: 0.0116
+AMZN: 0.0518
+GE: -0.0595
+AMD: -0.0679
+WMT: -0.0817
+BAC: -0.1413
+GM: -0.1402
+T: -0.1371
+UAA: 0.0003
+SHLD: -0.0706
+XOM: -0.0775
+RRC: -0.0510
+BBY: 0.0349
+MA: 0.3758
+PFE: 0.1112
+JPM: 0.0141
+SBUX: 0.0330
 ```
 
 - Minimum/maximum position size: it may be the case that you want no security to form more than 10% of your portfolio. This is easy to encode:
+
+<!--pytest-codeblocks:cont-->
 
 ```python
 ef = EfficientFrontier(mu, S, weight_bounds=(0, 0.1))
 ```
 
+```result
+```
 One issue with mean-variance optimization is that it leads to many zero-weights. While these are
 "optimal" in-sample, there is a large body of research showing that this characteristic leads
 mean-variance portfolios to underperform out-of-sample. To that end, I have introduced an
 objective function that can reduce the number of negligible weights for any of the objective functions. Essentially, it adds a penalty (parameterised by `gamma`) on small weights, with a term that looks just like L2 regularisation in machine learning. It may be necessary to try several `gamma` values to achieve the desired number of non-negligible weights. For the test portfolio of 20 securities, `gamma ~ 1` is sufficient
 
+<!--pytest-codeblocks:cont-->
+
 ```python
+from pypfopt import objective_functions
 ef = EfficientFrontier(mu, S)
 ef.add_objective(objective_functions.L2_reg, gamma=1)
-ef.max_sharpe()
+for name, value in ef.max_sharpe().items():
+    print(f"{name}: {value:.4f}")
+```
+
+```result
+GOOG: 0.0820
+AAPL: 0.0919
+FB: 0.1074
+BABA: 0.0680
+AMZN: 0.1011
+GE: 0.0309
+AMD: 0.0000
+WMT: 0.0353
+BAC: 0.0002
+GM: 0.0000
+T: 0.0274
+UAA: 0.0183
+SHLD: 0.0000
+XOM: 0.0466
+RRC: 0.0024
+BBY: 0.0645
+MA: 0.1426
+PFE: 0.0841
+JPM: 0.0279
+SBUX: 0.0695
 ```
 
 ### Black-Litterman allocation
@@ -290,14 +389,42 @@ posterior estimate. This results in much better estimates of expected returns th
 the mean historical return. Check out the [docs](https://pyportfolioopt.readthedocs.io/en/latest/BlackLitterman.html) for a discussion of the theory, as well as advice
 on formatting inputs.
 
+<!--pytest-codeblocks:cont-->
+
 ```python
+from pypfopt import risk_models, BlackLittermanModel
+
 S = risk_models.sample_cov(df)
 viewdict = {"AAPL": 0.20, "BBY": -0.30, "BAC": 0, "SBUX": -0.2, "T": 0.131321}
 bl = BlackLittermanModel(S, pi="equal", absolute_views=viewdict, omega="default")
 rets = bl.bl_returns()
 
 ef = EfficientFrontier(rets, S)
-ef.max_sharpe()
+for name, value in ef.max_sharpe().items():
+    print(f"{name}: {value:.4f}")
+```
+
+```result
+GOOG: 0.0000
+AAPL: 0.1749
+FB: 0.0503
+BABA: 0.0951
+AMZN: 0.0000
+GE: 0.0000
+AMD: 0.0000
+WMT: 0.0000
+BAC: 0.0000
+GM: 0.0000
+T: 0.5235
+UAA: 0.0000
+SHLD: 0.0000
+XOM: 0.1298
+RRC: 0.0000
+BBY: 0.0000
+MA: 0.0000
+PFE: 0.0264
+JPM: 0.0000
+SBUX: 0.0000
 ```
 
 ### Other optimizers
@@ -342,8 +469,10 @@ Tests are written in pytest (much more intuitive than `unittest` and the variant
 PyPortfolioOpt provides a test dataset of daily returns for 20 tickers:
 
 ```python
-['GOOG', 'AAPL', 'FB', 'BABA', 'AMZN', 'GE', 'AMD', 'WMT', 'BAC', 'GM',
-'T', 'UAA', 'SHLD', 'XOM', 'RRC', 'BBY', 'MA', 'PFE', 'JPM', 'SBUX']
+['GOOG', 'AAPL', 'FB', 'BABA', 'AMZN', 'GE', 'AMD', 'WMT', 'BAC', 'GM', 'T', 'UAA', 'SHLD', 'XOM', 'RRC', 'BBY', 'MA', 'PFE', 'JPM', 'SBUX']
+```
+
+```result
 ```
 
 These tickers have been informally selected to meet several criteria:
@@ -390,7 +519,7 @@ Contributions are _most welcome_. Have a look at the [Contribution Guide](https:
 I'd like to thank all of the people who have contributed to PyPortfolioOpt since its release in 2018.
 Special shout-outs to:
 
-- Tuan Tran (who is now the primary maintainer!)
+- Tuan Tran
 - Philipp Schiele
 - Carl Peasnell
 - Felipe Schneider
@@ -400,3 +529,4 @@ Special shout-outs to:
 - Thomas Schmelzer
 - Rich Caputo
 - Nicolas Knudde
+- Franz Kiraly
