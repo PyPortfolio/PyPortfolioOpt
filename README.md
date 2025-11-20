@@ -496,6 +496,4 @@ Special shout-outs to:
 - Thomas Schmelzer
 - Rich Caputo
 - Franz Kiraly
-
 - Nicolas Knudde
-- Franz Kiraly
