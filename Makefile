@@ -15,32 +15,38 @@ RESET := \033[0m
 .DEFAULT_GOAL := help
 
 # Declare phony targets (they don't produce files)
-.PHONY: install-task install clean test fmt
+.PHONY: install install-uv test fmt
 
-UV_INSTALL_DIR := "./bin"
+UV_INSTALL_DIR := ./bin
 
 ##@ Bootstrap
-install-task: ## ensure go-task (Taskfile) is installed
+install-uv: ## ensure uv (and uvx) are installed locally
 	@mkdir -p ${UV_INSTALL_DIR}
-
-	@if [ ! -x "${UV_INSTALL_DIR}/task" ]; then \
-		printf "$(BLUE)Installing go-task (Taskfile)$(RESET)\n"; \
-		curl --location https://taskfile.dev/install.sh | sh -s -- -d -b ${UV_INSTALL_DIR}; \
+	@if [ -x "${UV_INSTALL_DIR}/uv" ] && [ -x "${UV_INSTALL_DIR}/uvx" ]; then \
+		:; \
+	else \
+		printf "${BLUE}Installing uv${RESET}\n"; \
+		curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=${UV_INSTALL_DIR} sh 2>/dev/null || { printf "${RED}[ERROR] Failed to install uv ${RESET}\n"; exit 1; }; \
 	fi
 
-install: install-task ## install
-	@./bin/task build:install --silent
+install: install-uv ## install
+	@printf "${BLUE}[INFO] Creating virtual environment...${RESET}\n"
+	# Create the virtual environment
+	@./bin/uv venv --python 3.12 || { printf "${RED}[ERROR] Failed to create virtual environment${RESET}\n"; exit 1; }
+	@printf "${BLUE}[INFO] Installing dependencies${RESET}\n"
+	@./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
 
-clean: install-task ## clean
-	@./bin/task cleanup:clean --silent
 
 ##@ Development and Testing
-test: install-task ## run all tests
-	@./bin/task docs:test --silent
+test: install ## run all tests
+	@printf "${BLUE}[INFO] Running tests...${RESET}\n"
+	@./bin/uv pip install pytest pytest-cov pytest-html
+	@mkdir -p _tests/html-coverage _tests/html-report
+	@./bin/uv run pytest tests --cov=pypfopt --cov-report=term --cov-report=html:_tests/html-coverage --html=_tests/html-report/report.html
 
-fmt: install-task ## check the pre-commit hooks and the linting
-	@./bin/task quality:lint --silent
-
+fmt: install-uv ## check the pre-commit hooks and the linting
+	@./bin/uvx pre-commit run --all-files
+	@./bin/uvx deptry .
 
 ##@ Meta
 help: ## Display this help message
