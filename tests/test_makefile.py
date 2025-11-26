@@ -1,10 +1,9 @@
+from pathlib import Path
 import re
 import shutil
 import subprocess
-from pathlib import Path
 
 import pytest
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -34,9 +33,9 @@ def test_make_help_outputs_expected_sections_and_targets():
     out = _strip_ansi(proc.stdout)
     err = _strip_ansi(proc.stderr)
 
-    assert (
-        proc.returncode == 0
-    ), f"`make help` exited with {proc.returncode}\nSTDOUT:\n{out}\nSTDERR:\n{err}"
+    assert proc.returncode == 0, (
+        f"`make help` exited with {proc.returncode}\nSTDOUT:\n{out}\nSTDERR:\n{err}"
+    )
 
     # Basic headings from help target
     assert "Usage:" in out
@@ -48,9 +47,9 @@ def test_make_help_outputs_expected_sections_and_targets():
         "Development and Testing",
         "Meta",
     ]:
-        assert (
-            section in out
-        ), f"Section header '{section}' not found in help output.\nOutput was:\n{out}"
+        assert section in out, (
+            f"Section header '{section}' not found in help output.\nOutput was:\n{out}"
+        )
 
     # Targets declared in Makefile should appear in help
     for target in [
@@ -60,6 +59,6 @@ def test_make_help_outputs_expected_sections_and_targets():
         "fmt",
         "help",
     ]:
-        assert (
-            re.search(rf"\b{re.escape(target)}\b", out) is not None
-        ), f"Target '{target}' not found in help output.\nOutput was:\n{out}"
+        assert re.search(rf"\b{re.escape(target)}\b", out) is not None, (
+            f"Target '{target}' not found in help output.\nOutput was:\n{out}"
+        )
