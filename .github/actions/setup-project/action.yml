@@ -1,19 +1,19 @@
 # Action: Setup Project (composite action)
 #
-# Purpose: Bootstrap a Python project in GitHub Actions by:
-#   - Installing Task, uv, and uvx into a local ./bin directory
-#   - Detecting presence of pyproject.toml and exposing it as an output
-#   - Creating a virtual environment with uv and syncing dependencies
+# Purpose: Bootstrap a Python project within GitHub Actions by:
+#   - Installing uv and uvx into a local ./bin directory and adding it to PATH
+#   - Detecting the presence of pyproject.toml and exposing that as an output
+#   - Creating a virtual environment with uv and (optionally) syncing dependencies
 #
 # Inputs:
-#   - python-version: Python version used for the virtual environment (default: 3.12)
+#   - python-version: Python version for the uv-managed virtual environment (default: 3.12)
 #
 # Outputs:
 #   - pyproject_exists: "true" if pyproject.toml exists, otherwise "false"
 #
 # Notes:
 #   - Safe to run in repositories without pyproject.toml; dependency sync will be skipped.
-#   - Used by workflows such as CI, Book, Marimo, and Release.
+#   - Purely a CI helper — it does not modify repository files.
 
 name: 'Setup Project'
 description: 'Setup the project'
@@ -32,7 +32,7 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Set up task, uv, uvx and the venv
+    - name: Set up uv, uvx and the venv
       shell: bash
       run: |
         mkdir -p bin
@@ -41,16 +41,8 @@ runs:
         echo "Adding ./bin to PATH"
         echo "$(pwd)/bin" >> $GITHUB_PATH
 
-        # Install Task
-        curl -fsSL https://taskfile.dev/install.sh | sh -s -- -d -b ./bin
-
         # Install uv and uvx
         curl -fsSL https://astral.sh/uv/install.sh | UV_INSTALL_DIR="./bin" sh
-
-    - name: Check version for task
-      shell: bash
-      run: |
-        task --version
 
     - name: Check version for uv
       shell: bash
