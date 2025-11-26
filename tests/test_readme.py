@@ -28,7 +28,7 @@ def test_readme_runs():
     assert len(code_blocks) >= len(result_blocks), (
         "Mismatch between python and result blocks in README.md"
     )
-    
+
     code = "".join(code_blocks)  # merged code
     expected = "".join(result_blocks)
 
