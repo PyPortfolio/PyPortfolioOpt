@@ -1,9 +1,12 @@
-## Makefile for PyPortfolioOpt: developer tasks orchestrated via go-task
+## Makefile — PyPortfolioOpt developer conveniences
 #
-# This Makefile wraps the Taskfile.yml commands and provides a friendly
-# `make help` index. Lines with `##` after a target are parsed into help text,
-# and lines starting with `##@` create section headers in the help output.
-#
+# This Makefile exposes common local development tasks and a friendly
+# `make help` index.
+# Conventions used by the help generator:
+#   - Lines with `##` after a target are turned into help text.
+#   - Lines starting with `##@` create section headers in the help output.
+# This file does not affect the library itself; it only streamlines dev workflows.
+
 # Colors for pretty output in help messages
 BLUE := \033[36m
 BOLD := \033[1m
