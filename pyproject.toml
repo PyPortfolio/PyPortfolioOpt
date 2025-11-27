@@ -1,0 +1,114 @@
+[project]
+name = "pyportfolioopt"
+version = "1.5.6"
+description = "Financial portfolio optimization in python"
+license = { file = "LICENSE" }
+maintainers = [
+    { name = "Robert Andrew Martin", email = "martin.robertandrew@gmail.com" },
+]
+authors = [
+    { name = "Robert Andrew Martin", email = "martin.robertandrew@gmail.com" },
+]
+readme = "README.md"
+keywords= ["finance", "portfolio", "optimization", "quant", "investing"]
+classifiers=[
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+# core dependencies of pyportfolioopt
+# this set should be kept minimal!
+dependencies = [
+    "cvxpy>=1.1.19",
+    "numpy>=1.26.0",
+    "pandas>=0.19",
+    "scikit-base<0.14.0",
+    "scikit-learn>=0.24.1",
+    "scipy>=1.3.0",
+]
+
+[project.optional-dependencies]
+# there are the following dependency sets:
+# - all_extras - all soft dependencies
+# - dev - the developer dependency set, for contributors
+#
+# soft dependencies are not required for the core functionality of pyportfolioopt
+
+# all soft dependencies
+#
+# users can install via "pip install pyportfolioopt[all_extras]"
+#
+all_extras = [
+    "matplotlib>=3.2.0",
+    "ecos>=2.0.14,<2.1",
+    "plotly>=5.0.0,<7",
+    "cvxopt; python_version < '3.14'",
+]
+
+# dev - the developer dependency set, for contributors and CI
+dev = [
+    "pytest>=9.0.0",
+    "pytest-cov>=7.0.0",
+    "yfinance>=0.2.66",
+]
+
+# notebook tests
+notebook_test = [
+    "nbmake",
+    "pytest-rerunfailures",
+]
+
+[project.urls]
+Documentation = "https://pyportfolioopt.readthedocs.io/en/latest/"
+Download = "https://pypi.org/project/pyportfolioopt/#files"
+Homepage = "https://pyportfolioopt.readthedocs.io/en/latest/"
+Repository = "https://github.com/pyportfolio/pyportfolioopt"
+"Personal website" = "https://reasonabledeviations.com"
+
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [
+  "setuptools>=78.1.1",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["example", "example.*", "tests", "tests.*"]
+
+[tool.ruff]
+line-length = 88
+# Keep Ruff aligned with project target version
+target-version = "py311"
+# Exclude individual files/patterns from Ruff linting/formatting
+exclude = [
+  "tests/test_imports.py",
+  "cookbook/*.ipynb",
+]
+
+[tool.ruff.lint]
+# Keep the same selected rule sets as in ruff.toml
+select = ["F", "I"]
+
+[tool.ruff.format]
+# Formatting configuration
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint.isort]
+known-first-party = ["pypfopt"]
+combine-as-imports = true
+force-sort-within-sections = true
