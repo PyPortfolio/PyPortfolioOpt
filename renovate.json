@@ -1,4 +1,0 @@
-{
-  "extends": ["config:recommended"],
-  "forkProcessing": "enabled"
-}
