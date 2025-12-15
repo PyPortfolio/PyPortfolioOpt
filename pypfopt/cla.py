@@ -194,18 +194,25 @@ class CLA(base_optimizer.BaseOptimizer):
 
     @staticmethod
     def _reduce_matrix(matrix, listX, listY):
-        # Reduce a matrix to the provided list of rows and columns
+        """
+        Extract a submatrix from the given matrix using specified row and column indices.
+
+        Uses numpy advanced indexing with np.ix_ for vectorized selection,
+        which is significantly faster than the previous nested loop implementation
+        for large matrices.
+
+        :param matrix: input matrix to extract submatrix from
+        :type matrix: np.ndarray
+        :param listX: row indices to select
+        :type listX: list
+        :param listY: column indices to select
+        :type listY: list
+        :return: submatrix with selected rows and columns, or None if indices are empty
+        :rtype: np.ndarray or None
+        """
         if len(listX) == 0 or len(listY) == 0:
-            return
-        matrix_ = matrix[:, listY[0] : listY[0] + 1]
-        for i in listY[1:]:
-            a = matrix[:, i : i + 1]
-            matrix_ = np.append(matrix_, a, 1)
-        matrix__ = matrix_[listX[0] : listX[0] + 1, :]
-        for i in listX[1:]:
-            a = matrix_[i : i + 1, :]
-            matrix__ = np.append(matrix__, a, 0)
-        return matrix__
+            return None
+        return matrix[np.ix_(listX, listY)]
 
     def _purge_num_err(self, tol):
         # Purge violations of inequality constraints (associated with ill-conditioned cov matrix)
