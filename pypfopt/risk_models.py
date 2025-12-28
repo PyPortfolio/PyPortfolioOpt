@@ -56,18 +56,22 @@ def fix_nonpositive_semidefinite(matrix, fix_method="spectral"):
 
     The ``spectral`` method sets negative eigenvalues to zero then rebuilds the matrix,
     while the ``diag`` method adds a small positive value to the diagonal.
-
-    :param matrix: raw covariance matrix (may not be PSD)
-    :type matrix: pd.DataFrame
-    :param fix_method: {"spectral", "diag"}, defaults to "spectral"
-    :type fix_method: str, optional
-    :raises NotImplementedError: if a method is passed that isn't implemented
-    :return: positive semidefinite covariance matrix
-    :rtype: pd.DataFrame
     """
+    # Case 1: Matrix is PSD but potentially ill-conditioned
     if _is_positive_semidefinite(matrix):
+        try:
+            cond = np.linalg.cond(matrix)
+            if cond > 1e10:
+                warnings.warn(
+                    "Covariance matrix is positive semidefinite but ill-conditioned. "
+                    "Consider using shrinkage (Ledoit-Wolf or OAS) for numerical stability.",
+                    RuntimeWarning,
+                )
+        except np.linalg.LinAlgError:
+            pass
         return matrix
 
+    # Case 2: Matrix is not PSD — attempt to fix
     warnings.warn(
         "The covariance matrix is non positive semidefinite. Amending eigenvalues."
     )
@@ -76,27 +80,27 @@ def fix_nonpositive_semidefinite(matrix, fix_method="spectral"):
     q, V = np.linalg.eigh(matrix)
 
     if fix_method == "spectral":
-        # Remove negative eigenvalues
         q = np.where(q > 0, q, 0)
-        # Reconstruct matrix
         fixed_matrix = V @ np.diag(q) @ V.T
     elif fix_method == "diag":
         min_eig = np.min(q)
         fixed_matrix = matrix - 1.1 * min_eig * np.eye(len(matrix))
     else:
-        raise NotImplementedError("Method {} not implemented".format(fix_method))
+        raise NotImplementedError(f"Method {fix_method} not implemented")
 
     if not _is_positive_semidefinite(fixed_matrix):  # pragma: no cover
         warnings.warn(
-            "Could not fix matrix. Please try a different risk model.", UserWarning
+            "Could not fix matrix. Please try a different risk model.",
+            UserWarning,
         )
 
-    # Rebuild labels if provided
     if isinstance(matrix, pd.DataFrame):
-        tickers = matrix.index
-        return pd.DataFrame(fixed_matrix, index=tickers, columns=tickers)
-    else:
-        return fixed_matrix
+        return pd.DataFrame(
+            fixed_matrix, index=matrix.index, columns=matrix.columns
+        )
+
+    return fixed_matrix
+
 
 
 def risk_matrix(prices, method="sample_cov", **kwargs):
