@@ -120,7 +120,7 @@ def test_es_example_weekly():
 
 def test_es_example_monthly():
     df = get_data()
-    df = df.resample("M").first()
+    df = df.resample("ME").first()
     mu = expected_returns.mean_historical_return(df, frequency=12)
     historical_rets = expected_returns.returns_from_prices(df).dropna()
     es = EfficientSemivariance(mu, historical_rets, frequency=12)

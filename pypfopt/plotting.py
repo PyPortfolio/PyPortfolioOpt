@@ -386,6 +386,10 @@ def plot_efficient_frontier(
             xaxis_title="Volatility",
             yaxis_title="Return",
         )
+        # Handle showfig for interactive plotly plots
+        showfig = kwargs.get("showfig", False)
+        if showfig:
+            ax.show()
     else:
         ax.legend()
         ax.set_xlabel("Volatility")

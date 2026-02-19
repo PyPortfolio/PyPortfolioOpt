@@ -32,6 +32,7 @@ classifiers=[
 # core dependencies of pyportfolioopt
 # this set should be kept minimal!
 dependencies = [
+    "cvxcla>=1.5.1",
     "cvxpy>=1.1.19",
     "numpy>=1.26.0",
     "packaging>=26.0",

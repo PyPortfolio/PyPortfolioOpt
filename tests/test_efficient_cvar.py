@@ -94,7 +94,7 @@ def test_cvar_example_weekly():
 def test_cvar_example_monthly():
     beta = 0.95
     df = get_data()
-    df = df.resample("M").first()
+    df = df.resample("ME").first()
     mu = expected_returns.mean_historical_return(df, frequency=12)
     historical_rets = expected_returns.returns_from_prices(df).dropna()
     cv = EfficientCVaR(mu, historical_rets, beta=beta)

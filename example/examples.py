@@ -116,7 +116,7 @@ hrp = HRPOpt(returns)
 weights = hrp.optimize()
 hrp.portfolio_performance(verbose=True)
 print(weights)
-plotting.plot_dendrogram(hrp)  # to plot dendrogram
+plotting.plot_dendrogram(hrp, showfig=False)  # Use showfig=True to display plot
 
 """
 Expected annual return: 10.8%
@@ -146,11 +146,11 @@ Sharpe Ratio: 0.66
 """
 
 
-# Crticial Line Algorithm
-cla = CLA(mu, S)
+# Critical Line Algorithm (CLA)
+cla = CLA(mu, S, use_cvxcla=False)  # Use use_cvxcla=True for faster performance
 print(cla.max_sharpe())
 cla.portfolio_performance(verbose=True)
-plotting.plot_efficient_frontier(cla, interactive=True)  # interactive plotly plot
+plotting.plot_efficient_frontier(cla, interactive=True, showfig=False)  # Use showfig=True to open browser for interactive plot
 
 """
 {'GOOG': 0.020889868669945022,
