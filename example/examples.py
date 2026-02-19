@@ -37,8 +37,8 @@ Sharpe Ratio: 1.09
 
 # Black-Litterman
 spy_prices = pd.read_csv(
-    "tests/resources/spy_prices.csv", parse_dates=True, index_col=0, squeeze=True
-)
+    "tests/resources/spy_prices.csv", parse_dates=True, index_col=0
+).squeeze()
 delta = black_litterman.market_implied_risk_aversion(spy_prices)
 
 mcaps = {
@@ -150,7 +150,7 @@ Sharpe Ratio: 0.66
 cla = CLA(mu, S)
 print(cla.max_sharpe())
 cla.portfolio_performance(verbose=True)
-plotting.plot_efficient_frontier(cla)  # to plot
+plotting.plot_efficient_frontier(cla, interactive=True)  # interactive plotly plot
 
 """
 {'GOOG': 0.020889868669945022,
