@@ -138,7 +138,8 @@ class CLA(base_optimizer.BaseOptimizer):
         g1 = np.dot(np.dot(onesF.T, covarF_inv), meanF)
         g2 = np.dot(np.dot(onesF.T, covarF_inv), onesF)
         if wB is None:
-            g, w1 = float(-self.ls[-1] * g1 / g2 + 1 / g2), 0
+            g_result = -self.ls[-1] * g1 / g2 + 1 / g2
+            g, w1 = float(g_result.item() if hasattr(g_result, 'item') else g_result), 0
         else:
             onesB = np.ones(wB.shape)
             g3 = np.dot(onesB.T, wB)
@@ -168,7 +169,8 @@ class CLA(base_optimizer.BaseOptimizer):
         # 3) Lambda
         if wB is None:
             # All free assets
-            return float((c4[i] - c1 * bi) / c), bi
+            result = (c4[i] - c1 * bi) / c
+            return float(result.item() if hasattr(result, 'item') else result), bi
         else:
             onesB = np.ones(wB.shape)
             l1 = np.dot(onesB.T, wB)
