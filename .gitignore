@@ -49,3 +49,6 @@ dist
 artifacts
 
 bin
+
+# uv
+uv.lock
