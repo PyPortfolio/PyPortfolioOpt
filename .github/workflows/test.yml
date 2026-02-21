@@ -102,10 +102,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
-        with:
           python-version: ${{ matrix.python-version }}
 
       - name: Display Python version
@@ -113,9 +109,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: uv pip install .[dev,all_extras,notebook_test] --no-cache-dir
-        env:
-          UV_SYSTEM_PYTHON: 1
+        run: uv sync --extra dev --extra all_extras --extra notebook_test --no-cache
 
       - name: Show dependencies
         run: uv pip list
@@ -149,10 +143,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
-        with:
           python-version: ${{ matrix.python-version }}
 
       - name: Display Python version
@@ -165,15 +155,13 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: uv pip install .[dev] --no-cache-dir
-        env:
-          UV_SYSTEM_PYTHON: 1
+        run: uv sync --group dev --no-cache
 
       - name: Show dependencies
         run: uv pip list
 
       - name: Run tests
-        run: pytest ./tests
+        run: uv run pytest ./tests
 
   test-full:
     needs: test-nosoftdeps
@@ -192,10 +180,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
-        with:
           python-version: ${{ matrix.python-version }}
 
       - name: Display Python version
@@ -208,15 +192,13 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: uv pip install .[all_extras,dev] --no-cache-dir
-        env:
-          UV_SYSTEM_PYTHON: 1
+        run: uv sync --extra all_extras --extra dev --no-cache
 
       - name: Show dependencies
         run: uv pip list
 
       - name: Run tests
-        run: pytest ./tests
+        run: uv run pytest ./tests
 
   codecov:
     name: codecov (${{ matrix.python-version }}, ${{ matrix.os }})
@@ -234,10 +216,6 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
-        with:
           python-version: ${{ matrix.python-version }}
 
       - name: Display Python version
@@ -250,16 +228,14 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: uv pip install .[all_extras,dev] --no-cache-dir
-        env:
-          UV_SYSTEM_PYTHON: 1
+        run: uv sync --extra all_extras --extra dev --no-cache
 
       - name: Show dependencies
         run: uv pip list
 
       - name: Generate coverage report
         run: |
-          pip install pytest pytest-cov
+          uv pip install pytest pytest-cov
           pytest --cov=./ --cov-report=xml
 
       - name: Upload coverage to Codecov
