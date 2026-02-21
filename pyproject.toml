@@ -10,6 +10,7 @@ authors = [
     { name = "Robert Andrew Martin", email = "martin.robertandrew@gmail.com" },
 ]
 readme = "README.md"
+requires-python = ">=3.10,<3.15"
 keywords= ["finance", "portfolio", "optimization", "quant", "investing"]
 classifiers=[
     "Development Status :: 4 - Beta",
@@ -58,13 +59,6 @@ all_extras = [
     "cvxopt; python_version < '3.14'",
 ]
 
-# dev - the developer dependency set, for contributors and CI
-dev = [
-    "pytest>=9.0.0",
-    "pytest-cov>=7.0.0",
-    "yfinance>=0.2.66",
-]
-
 # notebook tests
 notebook_test = [
     "nbmake",
@@ -107,6 +101,16 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
 skip-magic-trailing-comma = false
+
+[dependency-groups]
+cov = [
+    "coverage>=7.13.4",
+    "pytest-cov>=7.0.0",
+]
+dev = [
+    "pytest>=9.0.2",
+    "yfinance>=1.2.0",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["pypfopt"]
