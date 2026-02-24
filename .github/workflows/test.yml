@@ -201,7 +201,7 @@ jobs:
         run: uv run pytest ./tests
 
   codecov:
-    name: codecov (${{ matrix.python-version }}, ${{ matrix.os }})
+    name: coverage (${{ matrix.python-version }} on ${{ matrix.os }}
     needs: code-quality
     runs-on: ${{ matrix.os }}
     strategy:
