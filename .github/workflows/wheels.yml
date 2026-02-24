@@ -47,7 +47,6 @@ jobs:
         
       - name: Build wheel
         run: |
-          uv pip install build
           uv build --wheel --sdist --out-dir wheelhouse
         env:
           UV_SYSTEM_PYTHON: 1
