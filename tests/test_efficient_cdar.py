@@ -84,9 +84,14 @@ def test_cdar_example_weekly():
 
 
 def test_cdar_example_monthly():
+    if _check_soft_dependencies("pandas<3", severity="none"):
+        MONTHLY_FREQ = "M"
+    else:
+        MONTHLY_FREQ = "ME"
+
     beta = 0.90
     df = get_data()
-    df = df.resample("M").first()
+    df = df.resample(MONTHLY_FREQ).first()
     mu = expected_returns.mean_historical_return(df, frequency=12)
     historical_rets = expected_returns.returns_from_prices(df).dropna()
     cd = EfficientCDaR(mu, historical_rets, beta=beta)
