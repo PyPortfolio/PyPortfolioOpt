@@ -228,16 +228,16 @@ class CLA(base_optimizer.BaseOptimizer):
         g1 = np.dot(np.dot(onesF.T, covarF_inv), meanF)
         g2 = np.dot(np.dot(onesF.T, covarF_inv), onesF)
         if wB is None:
-            g_result = -self.ls[-1] * g1 / g2 + 1 / g2
-            g, w1 = float(g_result.item() if hasattr(g_result, 'item') else g_result), 0
+            g = -self.ls[-1] * g1 / g2 + 1 / g2
+            w1 = 0
         else:
             onesB = np.ones(wB.shape)
             g3 = np.dot(onesB.T, wB)
             g4 = np.dot(covarF_inv, covarFB)
             w1 = np.dot(g4, wB)
             g4 = np.dot(onesF.T, w1)
-            g_result = -self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2
-            g = float(g_result.item() if hasattr(g_result, 'item') else g_result)
+            g = -self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2
+        g = float(g[0, 0])
         # 2) compute weights
         w2 = np.dot(covarF_inv, onesF)
         w3 = np.dot(covarF_inv, meanF)
@@ -259,16 +259,16 @@ class CLA(base_optimizer.BaseOptimizer):
         # 3) Lambda
         if wB is None:
             # All free assets
-            result = (c4[i] - c1 * bi) / c
-            return float(result.item() if hasattr(result, 'item') else result), bi
+            res = (c4[i] - c1 * bi) / c
         else:
             onesB = np.ones(wB.shape)
             l1 = np.dot(onesB.T, wB)
             l2 = np.dot(covarF_inv, covarFB)
             l3 = np.dot(l2, wB)
             l2 = np.dot(onesF.T, l3)
-            result = ((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c
-            return float(result.item() if hasattr(result, 'item') else result), bi
+            res = ((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c
+        res = float(res[0, 0])
+        return res, bi
 
     def _get_matrices(self, f):
         # Slice covarF,covarFB,covarB,meanF,meanB,wF,wB
@@ -288,18 +288,25 @@ class CLA(base_optimizer.BaseOptimizer):
 
     @staticmethod
     def _reduce_matrix(matrix, listX, listY):
-        # Reduce a matrix to the provided list of rows and columns
+        """
+        Extract a submatrix from the given matrix using specified row and column indices.
+
+        Uses numpy advanced indexing with np.ix_ for vectorized selection,
+        which is significantly faster than the previous nested loop implementation
+        for large matrices.
+
+        :param matrix: input matrix to extract submatrix from
+        :type matrix: np.ndarray
+        :param listX: row indices to select
+        :type listX: list
+        :param listY: column indices to select
+        :type listY: list
+        :return: submatrix with selected rows and columns, or None if indices are empty
+        :rtype: np.ndarray or None
+        """
         if len(listX) == 0 or len(listY) == 0:
-            return
-        matrix_ = matrix[:, listY[0] : listY[0] + 1]
-        for i in listY[1:]:
-            a = matrix[:, i : i + 1]
-            matrix_ = np.append(matrix_, a, 1)
-        matrix__ = matrix_[listX[0] : listX[0] + 1, :]
-        for i in listX[1:]:
-            a = matrix_[i : i + 1, :]
-            matrix__ = np.append(matrix__, a, 0)
-        return matrix__
+            return None
+        return matrix[np.ix_(listX, listY)]
 
     def _purge_num_err(self, tol):
         # Purge violations of inequality constraints (associated with ill-conditioned cov matrix)
