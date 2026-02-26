@@ -7,7 +7,7 @@ FAQs
 Constraining a score
 --------------------
 
-Suppose that for each asset you have some "score" – it could be an ESG metric, or some custom risk/return metric. It is simple to specify linear constraints, like "portfolio ESG score must be greater than x": you simply create
+Suppose that for each asset you have some "score" – it could be an ESG (Environmental, Social, and Governance) metric, or some custom risk/return metric. It is simple to specify linear constraints, like "portfolio ESG score must be greater than x": you simply create
 a vector of scores, add a constraint on the dot product of those scores with the portfolio weights, then optimize your objective::
 
     esg_scores = [0.3, 0.1, 0.4, 0.1, 0.5, 0.9, 0.2]
