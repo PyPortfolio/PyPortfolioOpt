@@ -350,11 +350,15 @@ def test_max_quadratic_utility_range():
         ret, semivar = results[i][1], results[i][2]
         # Allow for numerical noise: ret should not significantly exceed prev_ret
         assert ret <= prev_ret + tol, f"Return increased from {prev_ret} to {ret}"
-        assert semivar <= prev_semivar + tol, f"Semivar increased from {prev_semivar} to {semivar}"
+        assert semivar <= prev_semivar + tol, (
+            f"Semivar increased from {prev_semivar} to {semivar}"
+        )
 
     # Verify the overall trend is correct: significant decrease from start to end
     assert results[0][1] > results[-1][1] + 0.01, "Expected significant return decrease"
-    assert results[0][2] > results[-1][2] + 0.01, "Expected significant semivar decrease"
+    assert results[0][2] > results[-1][2] + 0.01, (
+        "Expected significant semivar decrease"
+    )
 
 
 def test_max_quadratic_utility_with_shorts():
