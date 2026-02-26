@@ -63,7 +63,7 @@ annual return of 20%::
     from pypfopt import expected_returns, EfficientSemivariance
 
     df = ... # your dataframe of prices
-    mu = expected_returns.mean_historical_returns(df)
+    mu = expected_returns.mean_historical_return(df)
     historical_returns = expected_returns.returns_from_prices(df)
 
     es = EfficientSemivariance(mu, historical_returns)
