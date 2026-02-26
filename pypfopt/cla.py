@@ -138,14 +138,16 @@ class CLA(base_optimizer.BaseOptimizer):
         g1 = np.dot(np.dot(onesF.T, covarF_inv), meanF)
         g2 = np.dot(np.dot(onesF.T, covarF_inv), onesF)
         if wB is None:
-            g, w1 = float(-self.ls[-1] * g1 / g2 + 1 / g2), 0
+            g = -self.ls[-1] * g1 / g2 + 1 / g2
+            w1 = 0
         else:
             onesB = np.ones(wB.shape)
             g3 = np.dot(onesB.T, wB)
             g4 = np.dot(covarF_inv, covarFB)
             w1 = np.dot(g4, wB)
             g4 = np.dot(onesF.T, w1)
-            g = float(-self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2)
+            g = -self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2
+        g = float(g[0, 0])
         # 2) compute weights
         w2 = np.dot(covarF_inv, onesF)
         w3 = np.dot(covarF_inv, meanF)
@@ -167,14 +169,16 @@ class CLA(base_optimizer.BaseOptimizer):
         # 3) Lambda
         if wB is None:
             # All free assets
-            return float((c4[i] - c1 * bi) / c), bi
+            res = (c4[i] - c1 * bi) / c
         else:
             onesB = np.ones(wB.shape)
             l1 = np.dot(onesB.T, wB)
             l2 = np.dot(covarF_inv, covarFB)
             l3 = np.dot(l2, wB)
             l2 = np.dot(onesF.T, l3)
-            return float(((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c), bi
+            res = ((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c
+        res = float(res[0, 0])
+        return res, bi
 
     def _get_matrices(self, f):
         # Slice covarF,covarFB,covarB,meanF,meanB,wF,wB
