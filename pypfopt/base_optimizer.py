@@ -8,11 +8,11 @@ evaluate return and risk for a given set of portfolio weights.
 """
 
 import collections
+from collections.abc import Iterable
 import copy
 import json
-import warnings
-from collections.abc import Iterable
 from typing import List
+import warnings
 
 import cvxpy as cp
 import numpy as np
