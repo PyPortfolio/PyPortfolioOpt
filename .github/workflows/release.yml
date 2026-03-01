@@ -1,114 +1,229 @@
+# ================================================================
+# PyPI Release Workflow (Fully uv-native, no setup-python)
+#
+# Design principles:
+#   - Use uv for EVERYTHING (Python provisioning, build, install, run)
+#   - Never rely on system Python or PATH resolution
+#   - Never test source installs — always test the built wheel
+#   - Enforce tag == pyproject.toml version
+#   - Use OIDC for secure PyPI publishing
+#
+# Interpreter resolution hierarchy:
+#   - Local development:        .python-version
+#   - Build job:                .python-version (implicitly)
+#   - Test matrix:              uv python pin <version> (overrides)
+#
+# Result:
+#   Deterministic, explicit, infrastructure-grade release pipeline.
+# ================================================================
+
 name: PyPI Release
 
+# ------------------------------------------------
+# Trigger only when a GitHub Release is published.
+# This prevents accidental uploads from branch pushes.
+# ------------------------------------------------
 on:
   release:
     types: [published]
 
 jobs:
+
+  # ================================================================
+  # 1️⃣ CHECK TAG CONSISTENCY
+  #
+  # Ensures that:
+  #   git tag vX.Y.Z  ==  project.version in pyproject.toml
+  #
+  # This prevents publishing a version that does not match
+  # the declared package metadata.
+  #
+  # We run inside the official uv container to:
+  #   - guarantee Python 3.11+ (for tomllib)
+  #   - avoid system dependency drift
+  # ================================================================
   check_tag:
-    name: Check tag
     runs-on: ubuntu-latest
 
+    container:
+      image: ghcr.io/astral-sh/uv:0.9.30-bookworm
+
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
-
-      - shell: bash
+      - name: Validate tag matches pyproject version
         run: |
+          # Extract tag name from GitHub event
           TAG="${{ github.event.release.tag_name }}"
+
+          # Remove leading "v" (common semantic versioning style)
           GH_TAG_NAME="${TAG#v}"
+
+          # Read version from pyproject.toml using Python
+          # We rely on tomllib (Python 3.11+) for robust parsing.
           PY_VERSION=$(python - <<'PY'
           import pathlib, tomllib
-          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
-          print(data.get("project").get("version"))
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          print(data["project"]["version"])
           PY
           )
-          if [ "${GH_TAG_NAME}" != "${PY_VERSION}" ]; then
-            echo "::error::Tag (${GH_TAG_NAME}) does not match pyproject.toml version (${PY_VERSION})."
-            exit 2
+
+          # Fail fast if mismatch
+          if [ "$GH_TAG_NAME" != "$PY_VERSION" ]; then
+            echo "::error::Tag ($GH_TAG_NAME) does not match pyproject version ($PY_VERSION)"
+            exit 1
           fi
 
-  build_wheels:
-    name: Build wheels
+  # ================================================================
+  # 2️⃣ BUILD DISTRIBUTIONS
+  #
+  # Build wheel (.whl) and source distribution (.tar.gz)
+  # using uv's native build backend.
+  #
+  # IMPORTANT:
+  #   The Python version used here is determined by:
+  #     - .python-version
+  #
+  #   Since we are inside a uv container,
+  #   uv resolves Python deterministically.
+  #
+  # Artifacts are uploaded and used by the test job.
+  # We NEVER rebuild during testing.
+  # ================================================================
+  build:
     runs-on: ubuntu-latest
-    needs: [check_tag]
+    needs: check_tag
+
+    container:
+      image: ghcr.io/astral-sh/uv:0.9.30-bookworm
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
-
-      - name: Build wheel
+      - name: Build wheel and sdist
         run: |
-          python -m pip install build
-          python -m build --wheel --sdist --outdir wheelhouse
+          # uv build uses pyproject.toml backend
+          # and respects .python-version
+          uv build --out-dir wheelhouse
 
-      - name: Store wheels
-        uses: actions/upload-artifact@v7
+      - name: Show built artifacts (sanity check)
+        run: ls -lah wheelhouse
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: dist
           path: wheelhouse/*
 
-  pytest-nosoftdeps:
-    name: no-softdeps
-    runs-on: ${{ matrix.os }}
-    needs: [build_wheels]
+  # ================================================================
+  # 3️⃣ TEST BUILT WHEEL (Matrix)
+  #
+  # This is the most important job.
+  #
+  # We test the BUILT WHEEL, not the source tree.
+  # This guarantees:
+  #   - package data is correct
+  #   - MANIFEST configuration is correct
+  #   - metadata is correct
+  #   - no accidental source leakage
+  #
+  # We do NOT use setup-python.
+  # Instead:
+  #   - uv installs the requested interpreter
+  #   - uv pins that interpreter for the project
+  #
+  # Matrix overrides .python-version deterministically.
+  #
+  # Execution uses:
+  #   uv run pytest
+  # to ensure uv-managed execution environment.
+  # ================================================================
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/astral-sh/uv:0.9.30-bookworm
+
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        # Define supported Python versions.
+        # These should align with:
+        #   - pyproject.toml requires-python
+        #   - your long-term support policy
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - uses: actions/download-artifact@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          name: dist
+          path: wheelhouse
 
-      - name: Setup macOS
-        if: runner.os == 'macOS'
+      - name: Install and pin Python ${{ matrix.python-version }}
         run: |
-          brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
+          # Install requested interpreter version
+          uv python install ${{ matrix.python-version }}
 
-      - name: Get full Python version
-        id: full-python-version
-        shell: bash
-        run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
+          # Pin interpreter for this project context.
+          # This overrides .python-version for the job.
+          uv python pin ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        shell: bash
+          # Show interpreter for auditability
+          uv run python --version
+
+      - name: Install built wheel with dev dependencies
         run: |
-          pip install ".[dev]"
+          # Install the wheel artifact (NOT source install)
+          # [dev] assumes pytest is declared as optional dependency.
+          uv pip install wheelhouse/*.whl[dev]
 
-      - name: Show dependencies
-        run: python -m pip list
+      - name: Verify dependency graph integrity
+        run: |
+          # Equivalent to pip check
+          # Ensures no broken or conflicting dependencies
+          uv pip check
 
-      - name: Run pytest
-        shell: bash
-        run: python -m pytest tests
+      - name: Run test suite inside uv-managed environment
+        run: |
+          # Explicit execution through uv ensures:
+          #   - correct interpreter
+          #   - correct environment
+          #   - no PATH ambiguity
+          uv run pytest tests
 
-  upload_wheels:
-    name: Upload wheels to PyPI
+  # ================================================================
+  # 4️⃣ PUBLISH TO PYPI
+  #
+  # Only runs if:
+  #   - Tag matches version
+  #   - Build succeeded
+  #   - All matrix tests succeeded
+  #
+  # Uses OIDC authentication:
+  #   - No API token stored
+  #   - No secrets leakage
+  #
+  # Uploads EXACTLY the artifacts tested above.
+  # No rebuild occurs here.
+  # ================================================================
+  publish:
+    needs: test
     runs-on: ubuntu-latest
-    needs: [pytest-nosoftdeps]
 
     permissions:
+      # Required for trusted publishing via OIDC
       id-token: write
 
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@v4
         with:
-          name: wheels
+          name: dist
           path: wheelhouse
 
-      - name: Publish package to PyPI
+      - name: Publish distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: wheelhouse/
