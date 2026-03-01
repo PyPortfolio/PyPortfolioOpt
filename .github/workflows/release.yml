@@ -45,9 +45,6 @@ jobs:
   check_tag:
     runs-on: ubuntu-latest
 
-    container:
-      image: ghcr.io/astral-sh/uv:0.9.30-bookworm
-
     steps:
       - uses: actions/checkout@v4
 
@@ -152,7 +149,7 @@ jobs:
         # These should align with:
         #   - pyproject.toml requires-python
         #   - your long-term support policy
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - uses: actions/checkout@v4
@@ -164,6 +161,15 @@ jobs:
 
       - name: Install and pin Python ${{ matrix.python-version }}
         run: |
+          # Read version from pyproject.toml
+          PY_VERSION=$(python - <<'PY'
+          import pathlib, tomllib
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
+          print(data["project"]["version"])
+          PY
+          )
+          echo "PY_VERSION=${PY_VERSION}" >> $GITHUB_ENV
+
           # Install requested interpreter version
           uv python install ${{ matrix.python-version }}
 
@@ -177,8 +183,8 @@ jobs:
       - name: Install built wheel with dev dependencies
         run: |
           # Install the wheel artifact (NOT source install)
-          # [dev] assumes pytest is declared as optional dependency.
-          uv pip install wheelhouse/*.whl[dev]
+          # [dev,all_extras] assumes these are declared as optional dependencies.
+          uv pip install "wheelhouse/pyportfolioopt-${PY_VERSION}-py3-none-any.whl[dev,all_extras]"
 
       - name: Verify dependency graph integrity
         run: |
