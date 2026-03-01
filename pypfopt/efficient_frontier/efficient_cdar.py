@@ -56,24 +56,31 @@ class EfficientCDaR(EfficientFrontier):
         solver_options=None,
     ):
         """
-        :param expected_returns: expected returns for each asset. Can be None if
-                                optimising for CDaR only.
-        :type expected_returns: pd.Series, list, np.ndarray
-        :param returns: (historic) returns for all your assets (no NaNs).
-                                 See ``expected_returns.returns_from_prices``.
-        :type returns: pd.DataFrame or np.array
-        :param beta: confidence level, defaults to 0.95 (i.e expected drawdown on the worst (1-beta) days).
-        :param weight_bounds: minimum and maximum weight of each asset OR single min/max pair
-                              if all identical, defaults to (0, 1). Must be changed to (-1, 1)
-                              for portfolios with shorting.
-        :type weight_bounds: tuple OR tuple list, optional
-        :param solver: name of solver. list available solvers with: `cvxpy.installed_solvers()`
-        :type solver: str
-        :param verbose: whether performance and debugging info should be printed, defaults to False
-        :type verbose: bool, optional
-        :param solver_options: parameters for the given solver
-        :type solver_options: dict, optional
-        :raises TypeError: if ``expected_returns`` is not a series, list or array
+        Parameters
+        ----------
+        expected_returns : pd.Series, list, or np.ndarray
+            expected returns for each asset. Can be None if
+            optimising for CDaR only.
+        returns : pd.DataFrame or np.array
+            (historic) returns for all your assets (no NaNs).
+            See ``expected_returns.returns_from_prices``.
+        beta : float
+            confidence level, defaults to 0.95 (i.e expected drawdown on the worst (1-beta) days).
+        weight_bounds : tuple or list of tuples, optional
+            minimum and maximum weight of each asset OR single min/max pair
+            if all identical, defaults to (0, 1). Must be changed to (-1, 1)
+            for portfolios with shorting.
+        solver : str
+            name of solver. list available solvers with: `cvxpy.installed_solvers()`
+        verbose : bool, optional
+            whether performance and debugging info should be printed, defaults to False
+        solver_options : dict, optional
+            parameters for the given solver
+
+        Raises
+        ------
+        TypeError
+            if ``expected_returns`` is not a series, list or array
         """
         super().__init__(
             expected_returns=expected_returns,
@@ -117,11 +124,16 @@ class EfficientCDaR(EfficientFrontier):
         """
         Minimise portfolio CDaR (see docs for further explanation).
 
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :return: asset weights for the volatility-minimising portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        market_neutral : bool, optional
+            whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            asset weights for the volatility-minimising portfolio
         """
         self._objective = self._alpha + 1.0 / (
             len(self.returns) * (1 - self._beta)
@@ -138,15 +150,25 @@ class EfficientCDaR(EfficientFrontier):
         """
         Minimise CDaR for a given target return.
 
-        :param target_return: the desired return of the resulting portfolio.
-        :type target_return: float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :type market_neutral: bool, optional
-        :raises ValueError: if ``target_return`` is not a positive float
-        :raises ValueError: if no portfolio can be found with return equal to ``target_return``
-        :return: asset weights for the optimal portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        target_return : float
+            the desired return of the resulting portfolio.
+        market_neutral : bool, optional
+            whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Raises
+        ------
+        ValueError
+            if ``target_return`` is not a positive float
+        ValueError
+            if no portfolio can be found with return equal to ``target_return``
+
+        Returns
+        -------
+        OrderedDict
+            asset weights for the optimal portfolio
         """
 
         update_existing_parameter = self.is_parameter_defined("target_return")
@@ -168,13 +190,18 @@ class EfficientCDaR(EfficientFrontier):
         The resulting portfolio will have a CDaR less than the target
         (but not guaranteed to be equal).
 
-        :param target_cdar: the desired maximum CDaR of the resulting portfolio.
-        :type target_cdar: float
-        :param market_neutral: whether the portfolio should be market neutral (weights sum to zero),
-                               defaults to False. Requires negative lower weight bound.
-        :param market_neutral: bool, optional
-        :return: asset weights for the efficient risk portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        target_cdar : float
+            the desired maximum CDaR of the resulting portfolio.
+        market_neutral : bool, optional
+            whether the portfolio should be market neutral (weights sum to zero),
+            defaults to False. Requires negative lower weight bound.
+
+        Returns
+        -------
+        OrderedDict
+            asset weights for the efficient risk portfolio
         """
 
         update_existing_parameter = self.is_parameter_defined("target_cdar")
@@ -215,11 +242,20 @@ class EfficientCDaR(EfficientFrontier):
         After optimising, calculate (and optionally print) the performance of the optimal
         portfolio, specifically: expected return, CDaR
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, CDaR.
-        :rtype: (float, float)
+        Parameters
+        ----------
+        verbose : bool, optional
+            whether performance should be printed, defaults to False
+
+        Raises
+        ------
+        ValueError
+            if weights have not been calculated yet
+
+        Returns
+        -------
+        (float, float)
+            expected return, CDaR.
         """
         mu = objective_functions.portfolio_return(
             self.weights, self.expected_returns, negative=False

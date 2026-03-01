@@ -19,11 +19,20 @@ def get_latest_prices(prices):
     A helper tool which retrieves the most recent asset prices from a dataframe of
     asset prices, required in order to generate a discrete allocation.
 
-    :param prices: historical asset prices
-    :type prices: pd.DataFrame
-    :raises TypeError: if prices are not in a dataframe
-    :return: the most recent price of each asset
-    :rtype: pd.Series
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        historical asset prices
+
+    Raises
+    ------
+    TypeError
+        if prices are not in a dataframe
+
+    Returns
+    -------
+    pd.Series
+        the most recent price of each asset
     """
     if not isinstance(prices, pd.DataFrame):
         raise TypeError("prices not in a dataframe")
@@ -55,18 +64,26 @@ class DiscreteAllocation:
         self, weights, latest_prices, total_portfolio_value=10000, short_ratio=None
     ):
         """
-        :param weights: continuous weights generated from the ``efficient_frontier`` module
-        :type weights: dict
-        :param latest_prices: the most recent price for each asset
-        :type latest_prices: pd.Series
-        :param total_portfolio_value: the desired total value of the portfolio, defaults to 10000
-        :type total_portfolio_value: int/float, optional
-        :param short_ratio: the short ratio, e.g 0.3 corresponds to 130/30. If None,
-                            defaults to the input weights.
-        :type short_ratio: float, defaults to None.
-        :raises TypeError: if ``weights`` is not a dict
-        :raises TypeError: if ``latest_prices`` isn't a series
-        :raises ValueError: if ``short_ratio < 0``
+        Parameters
+        ----------
+        weights : dict
+            continuous weights generated from the ``efficient_frontier`` module
+        latest_prices : pd.Series
+            the most recent price for each asset
+        total_portfolio_value : int or float, optional
+            the desired total value of the portfolio, defaults to 10000
+        short_ratio : float, optional
+            the short ratio, e.g 0.3 corresponds to 130/30. If None,
+            defaults to the input weights. Defaults to None.
+
+        Raises
+        ------
+        TypeError
+            if ``weights`` is not a dict
+        TypeError
+            if ``latest_prices`` isn't a series
+        ValueError
+            if ``short_ratio < 0``
         """
         if not isinstance(weights, dict):
             raise TypeError("weights should be a dictionary of {ticker: weight}")
@@ -93,7 +110,9 @@ class DiscreteAllocation:
         """
         Utility function to remove zero positions (i.e with no shares being bought)
 
-        :type allocation: dict
+        Parameters
+        ----------
+        allocation : dict
         """
         return {k: v for k, v in allocation.items() if v != 0}
 
@@ -103,10 +122,15 @@ class DiscreteAllocation:
         weights and continuous weights. RMSE was used instead of MAE because we
         want to penalise large variations.
 
-        :param verbose: print weight discrepancies?
-        :type verbose: bool
-        :return: rmse error
-        :rtype: float
+        Parameters
+        ----------
+        verbose : bool
+            print weight discrepancies?
+
+        Returns
+        -------
+        float
+            rmse error
         """
         portfolio_val = 0
         for ticker, num in self.allocation.items():
@@ -136,13 +160,18 @@ class DiscreteAllocation:
         Convert continuous weights into a discrete portfolio allocation
         using a greedy iterative approach.
 
-        :param reinvest: whether or not to reinvest cash gained from shorting
-        :type reinvest: bool, defaults to False
-        :param verbose: print error analysis?
-        :type verbose: bool, defaults to False
-        :return: the number of shares of each ticker that should be purchased,
-                 along with the amount of funds leftover.
-        :rtype: (dict, float)
+        Parameters
+        ----------
+        reinvest : bool, optional
+            whether or not to reinvest cash gained from shorting. Defaults to False.
+        verbose : bool, optional
+            print error analysis? Defaults to False.
+
+        Returns
+        -------
+        (dict, float)
+            the number of shares of each ticker that should be purchased,
+            along with the amount of funds leftover.
         """
         # Sort in descending order of weight
         self.weights.sort(key=lambda x: x[1], reverse=True)
@@ -260,15 +289,21 @@ class DiscreteAllocation:
         Convert continuous weights into a discrete portfolio allocation
         using integer programming.
 
-        :param reinvest: whether or not to reinvest cash gained from shorting
-        :type reinvest: bool, defaults to False
-        :param verbose: print error analysis?
-        :type verbose: bool
-        :param solver: the CVXPY solver to use (must support mixed-integer programs)
-        :type solver: str, defaults to "ECOS_BB" if ecos is installed, else None
-        :return: the number of shares of each ticker that should be purchased, along with the amount
-                of funds leftover.
-        :rtype: (dict, float)
+        Parameters
+        ----------
+        reinvest : bool, optional
+            whether or not to reinvest cash gained from shorting. Defaults to False.
+        verbose : bool, optional
+            print error analysis? Defaults to False.
+        solver : str, optional
+            the CVXPY solver to use (must support mixed-integer programs).
+            Defaults to "ECOS_BB" if ecos is installed, else None.
+
+        Returns
+        -------
+        (dict, float)
+            the number of shares of each ticker that should be purchased, along with the amount
+            of funds leftover.
         """
         # todo 1.7.0: remove this defaulting behavior
         if solver is None and _check_soft_dependencies("ecos", severity="none"):

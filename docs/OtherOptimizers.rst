@@ -95,11 +95,11 @@ to code up compared to custom objective functions.
 
 To implement a custom optimizer that is compatible with the rest of PyPortfolioOpt, just
 extend ``BaseOptimizer`` (or ``BaseConvexOptimizer`` if you want to use ``cvxpy``),
-both of which can be found in ``base_optimizer.py``. This gives you access to utility
+both of which can be found in ``pypfopt.base``. This gives you access to utility
 methods like ``clean_weights()``, as well as making sure that any output is compatible
 with ``portfolio_performance()`` and post-processing methods.
 
-.. automodule:: pypfopt.base_optimizer
+.. automodule:: pypfopt.base
 
     .. autoclass:: BaseOptimizer
         :members:

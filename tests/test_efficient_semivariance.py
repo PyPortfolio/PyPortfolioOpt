@@ -119,8 +119,13 @@ def test_es_example_weekly():
 
 
 def test_es_example_monthly():
+    if _check_soft_dependencies("pandas<3", severity="none"):
+        MONTHLY_FREQ = "M"
+    else:
+        MONTHLY_FREQ = "ME"
+
     df = get_data()
-    df = df.resample("M").first()
+    df = df.resample(MONTHLY_FREQ).first()
     mu = expected_returns.mean_historical_return(df, frequency=12)
     historical_rets = expected_returns.returns_from_prices(df).dropna()
     es = EfficientSemivariance(mu, historical_rets, frequency=12)

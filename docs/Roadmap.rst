@@ -8,7 +8,13 @@ Roadmap and Changelog
 Roadmap
 =======
 
-PyPortfolioOpt is now a "mature" package – it is stable and I don't intend to implement major new functionality (though I will endeavour to fix bugs).
+1.6.0
+=====
+
+- Support for python 3.14, end-of-life for python 3.8 and 3.9
+- Support for pandas 3.0
+- Reduction of dependency footprint. Former dependencies are still available as soft dependencies in the new ``all_extras`` depset.
+- Feature additions and bugfixes.
 
 1.5.0
 =====

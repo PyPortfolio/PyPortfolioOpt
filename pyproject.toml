@@ -1,6 +1,6 @@
 [project]
 name = "pyportfolioopt"
-version = "1.5.6"
+version = "1.6.0"
 description = "Financial portfolio optimization in python"
 license = { file = "LICENSE" }
 maintainers = [
@@ -34,8 +34,8 @@ classifiers=[
 # this set should be kept minimal!
 dependencies = [
     "cvxpy>=1.1.19",
-    "numpy>=1.26.0",
-    "pandas>=0.19",
+    "numpy>=1.26.0,<3.0.0",
+    "pandas>=1.0.0,<4.0.0",
     "scikit-base<0.14.0",
     "scikit-learn>=0.24.1",
     "scipy>=1.3.0",

@@ -36,10 +36,15 @@ def _is_positive_semidefinite(matrix):
     Any method that requires inverting the covariance matrix will struggle
     with a non-positive semidefinite matrix
 
-    :param matrix: (covariance) matrix to test
-    :type matrix: np.ndarray, pd.DataFrame
-    :return: whether matrix is positive semidefinite
-    :rtype: bool
+    Parameters
+    ----------
+    matrix : np.ndarray or pd.DataFrame
+        (covariance) matrix to test
+
+    Returns
+    -------
+    bool
+        whether matrix is positive semidefinite
     """
     try:
         # Significantly more efficient than checking eigenvalues (stackoverflow.com/questions/16266720)
@@ -57,13 +62,22 @@ def fix_nonpositive_semidefinite(matrix, fix_method="spectral"):
     The ``spectral`` method sets negative eigenvalues to zero then rebuilds the matrix,
     while the ``diag`` method adds a small positive value to the diagonal.
 
-    :param matrix: raw covariance matrix (may not be PSD)
-    :type matrix: pd.DataFrame
-    :param fix_method: {"spectral", "diag"}, defaults to "spectral"
-    :type fix_method: str, optional
-    :raises NotImplementedError: if a method is passed that isn't implemented
-    :return: positive semidefinite covariance matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    matrix : pd.DataFrame
+        raw covariance matrix (may not be PSD)
+    fix_method : str, optional
+        {"spectral", "diag"}, defaults to "spectral"
+
+    Raises
+    ------
+    NotImplementedError
+        if a method is passed that isn't implemented
+
+    Returns
+    -------
+    pd.DataFrame
+        positive semidefinite covariance matrix
     """
     if _is_positive_semidefinite(matrix):
         return matrix
@@ -104,12 +118,15 @@ def risk_matrix(prices, method="sample_cov", **kwargs):
     Compute a covariance matrix, using the risk model supplied in the ``method``
     parameter.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param method: the risk model to use. Should be one of:
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        if true, the first argument is returns instead of prices. Defaults to False.
+    method : str, optional
+        the risk model to use. Should be one of:
 
         - ``sample_cov``
         - ``semicovariance``
@@ -120,10 +137,15 @@ def risk_matrix(prices, method="sample_cov", **kwargs):
         - ``ledoit_wolf_constant_correlation``
         - ``oracle_approximating``
 
-    :type method: str, optional
-    :raises NotImplementedError: if the supplied method is not recognised
-    :return: annualised sample covariance matrix
-    :rtype: pd.DataFrame
+    Raises
+    ------
+    NotImplementedError
+        if the supplied method is not recognised
+
+    Returns
+    -------
+    pd.DataFrame
+        annualised sample covariance matrix
     """
     if method == "sample_cov":
         return sample_cov(prices, **kwargs)
@@ -151,18 +173,23 @@ def sample_cov(prices, returns_data=False, frequency=252, log_returns=False, **k
     """
     Calculate the annualised sample covariance matrix of (daily) asset returns.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year)
-    :type frequency: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: annualised sample covariance matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        if true, the first argument is returns instead of prices. Defaults to False.
+    frequency : int, optional
+        number of time periods in a year, defaults to 252 (the number
+        of trading days in a year)
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.DataFrame
+        annualised sample covariance matrix
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("data is not in a dataframe", RuntimeWarning)
@@ -190,22 +217,27 @@ def semicovariance(
 
     .. semicov = E([min(r_i - B, 0)] . [min(r_j - B, 0)])
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param benchmark: the benchmark return, defaults to the daily risk-free rate, i.e
-                      :math:`1.02^{(1/252)} -1`.
-    :type benchmark: float
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year). Ensure that you use the appropriate
-                      benchmark, e.g if ``frequency=12`` use monthly benchmark returns
-    :type frequency: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: semicovariance matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        if true, the first argument is returns instead of prices. Defaults to False.
+    benchmark : float
+        the benchmark return, defaults to the daily risk-free rate, i.e
+        :math:`1.02^{(1/252)} -1`.
+    frequency : int, optional
+        number of time periods in a year, defaults to 252 (the number
+        of trading days in a year). Ensure that you use the appropriate
+        benchmark, e.g if ``frequency=12`` use monthly benchmark returns
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.DataFrame
+        semicovariance matrix
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("data is not in a dataframe", RuntimeWarning)
@@ -225,14 +257,19 @@ def _pair_exp_cov(X, Y, span=180):
     """
     Calculate the exponential covariance between two timeseries of returns.
 
-    :param X: first time series of returns
-    :type X: pd.Series
-    :param Y: second time series of returns
-    :type Y: pd.Series
-    :param span: the span of the exponential weighting function, defaults to 180
-    :type span: int, optional
-    :return: the exponential covariance between X and Y
-    :rtype: float
+    Parameters
+    ----------
+    X : pd.Series
+        first time series of returns
+    Y : pd.Series
+        second time series of returns
+    span : int, optional
+        the span of the exponential weighting function, defaults to 180
+
+    Returns
+    -------
+    float
+        the exponential covariance between X and Y
     """
     covariation = (X - X.mean()) * (Y - Y.mean())
     # Exponentially weight the covariation and take the mean
@@ -248,20 +285,25 @@ def exp_cov(
     Estimate the exponentially-weighted covariance matrix, which gives
     greater weight to more recent data.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param span: the span of the exponential weighting function, defaults to 180
-    :type span: int, optional
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year)
-    :type frequency: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: annualised estimate of exponential covariance matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        if true, the first argument is returns instead of prices. Defaults to False.
+    span : int, optional
+        the span of the exponential weighting function, defaults to 180
+    frequency : int, optional
+        number of time periods in a year, defaults to 252 (the number
+        of trading days in a year)
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.DataFrame
+        annualised estimate of exponential covariance matrix
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("data is not in a dataframe", RuntimeWarning)
@@ -325,10 +367,15 @@ def cov_to_corr(cov_matrix):
     """
     Convert a covariance matrix to a correlation matrix.
 
-    :param cov_matrix: covariance matrix
-    :type cov_matrix: pd.DataFrame
-    :return: correlation matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    cov_matrix : pd.DataFrame
+        covariance matrix
+
+    Returns
+    -------
+    pd.DataFrame
+        correlation matrix
     """
     if not isinstance(cov_matrix, pd.DataFrame):
         warnings.warn("cov_matrix is not a dataframe", RuntimeWarning)
@@ -343,12 +390,17 @@ def corr_to_cov(corr_matrix, stdevs):
     """
     Convert a correlation matrix to a covariance matrix
 
-    :param corr_matrix: correlation matrix
-    :type corr_matrix: pd.DataFrame
-    :param stdevs: vector of standard deviations
-    :type stdevs: array-like
-    :return: covariance matrix
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    corr_matrix : pd.DataFrame
+        correlation matrix
+    stdevs : array-like
+        vector of standard deviations
+
+    Returns
+    -------
+    pd.DataFrame
+        covariance matrix
     """
     if not isinstance(corr_matrix, pd.DataFrame):
         warnings.warn("corr_matrix is not a dataframe", RuntimeWarning)
@@ -374,14 +426,16 @@ class CovarianceShrinkage:
 
     def __init__(self, prices, returns_data=False, frequency=252, log_returns=False):
         """
-        :param prices: adjusted closing prices of the asset, each row is a date and each column is a ticker/id.
-        :type prices: pd.DataFrame
-        :param returns_data: if true, the first argument is returns instead of prices.
-        :type returns_data: bool, defaults to False.
-        :param frequency: number of time periods in a year, defaults to 252 (the number of trading days in a year)
-        :type frequency: int, optional
-        :param log_returns: whether to compute using log returns
-        :type log_returns: bool, defaults to False
+        Parameters
+        ----------
+        prices : pd.DataFrame
+            adjusted closing prices of the asset, each row is a date and each column is a ticker/id.
+        returns_data : bool, optional
+            if true, the first argument is returns instead of prices. Defaults to False.
+        frequency : int, optional
+            number of time periods in a year, defaults to 252 (the number of trading days in a year)
+        log_returns : bool, optional
+            whether to compute using log returns. Defaults to False.
         """
         if not _check_soft_dependencies(["scikit-learn"], severity="none"):
             raise ImportError(
@@ -413,10 +467,15 @@ class CovarianceShrinkage:
         Helper method which annualises the output of shrinkage calculations,
         and formats the result into a dataframe
 
-        :param raw_cov_array: raw covariance matrix of daily returns
-        :type raw_cov_array: np.ndarray
-        :return: annualised covariance matrix
-        :rtype: pd.DataFrame
+        Parameters
+        ----------
+        raw_cov_array : np.ndarray
+            raw covariance matrix of daily returns
+
+        Returns
+        -------
+        pd.DataFrame
+            annualised covariance matrix
         """
         assets = self.X.columns
         cov = pd.DataFrame(raw_cov_array, index=assets, columns=assets) * self.frequency
@@ -428,10 +487,15 @@ class CovarianceShrinkage:
         sample variance). This method does not estimate an optimal shrinkage parameter,
         it requires manual input.
 
-        :param delta: shrinkage parameter, defaults to 0.2.
-        :type delta: float, optional
-        :return: shrunk sample covariance matrix
-        :rtype: np.ndarray
+        Parameters
+        ----------
+        delta : float, optional
+            shrinkage parameter, defaults to 0.2.
+
+        Returns
+        -------
+        np.ndarray
+            shrunk sample covariance matrix
         """
         self.delta = delta
         N = self.S.shape[1]
@@ -447,13 +511,22 @@ class CovarianceShrinkage:
         Calculate the Ledoit-Wolf shrinkage estimate for a particular
         shrinkage target.
 
-        :param shrinkage_target: choice of shrinkage target, either ``constant_variance``,
-                                 ``single_factor`` or ``constant_correlation``. Defaults to
-                                 ``constant_variance``.
-        :type shrinkage_target: str, optional
-        :raises NotImplementedError: if the shrinkage_target is unrecognised
-        :return: shrunk sample covariance matrix
-        :rtype: np.ndarray
+        Parameters
+        ----------
+        shrinkage_target : str, optional
+            choice of shrinkage target, either ``constant_variance``,
+            ``single_factor`` or ``constant_correlation``. Defaults to
+            ``constant_variance``.
+
+        Raises
+        ------
+        NotImplementedError
+            if the shrinkage_target is unrecognised
+
+        Returns
+        -------
+        np.ndarray
+            shrunk sample covariance matrix
         """
         if shrinkage_target == "constant_variance":
             X = np.nan_to_num(self.X.values)
@@ -475,8 +548,10 @@ class CovarianceShrinkage:
         with the Sharpe single-factor matrix as the shrinkage target.
         See Ledoit and Wolf (2001).
 
-        :return: shrunk sample covariance matrix, shrinkage constant
-        :rtype: np.ndarray, float
+        Returns
+        -------
+        np.ndarray, float
+            shrunk sample covariance matrix, shrinkage constant
         """
         X = np.nan_to_num(self.X.values)
 
@@ -530,8 +605,10 @@ class CovarianceShrinkage:
         with the constant correlation matrix as the shrinkage target.
         See Ledoit and Wolf (2003)
 
-        :return: shrunk sample covariance matrix, shrinkage constant
-        :rtype: np.ndarray, float
+        Returns
+        -------
+        np.ndarray, float
+            shrunk sample covariance matrix, shrinkage constant
         """
         X = np.nan_to_num(self.X.values)
         t, n = np.shape(X)
@@ -581,8 +658,10 @@ class CovarianceShrinkage:
         """
         Calculate the Oracle Approximating Shrinkage estimate
 
-        :return: shrunk sample covariance matrix
-        :rtype: np.ndarray
+        Returns
+        -------
+        np.ndarray
+            shrunk sample covariance matrix
         """
         X = np.nan_to_num(self.X.values)
         shrunk_cov, self.delta = self.covariance.oas(X)

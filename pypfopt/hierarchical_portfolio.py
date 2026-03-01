@@ -19,10 +19,11 @@ import pandas as pd
 import scipy.cluster.hierarchy as sch
 import scipy.spatial.distance as ssd
 
-from . import base_optimizer, risk_models
+from pypfopt.base import BaseOptimizer, portfolio_performance
+from pypfopt.risk_models import cov_to_corr
 
 
-class HRPOpt(base_optimizer.BaseOptimizer):
+class HRPOpt(BaseOptimizer):
     """
     A HRPOpt object (inheriting from BaseOptimizer) constructs a hierarchical
     risk parity portfolio.
@@ -52,11 +53,17 @@ class HRPOpt(base_optimizer.BaseOptimizer):
 
     def __init__(self, returns=None, cov_matrix=None):
         """
-        :param returns: asset historical returns
-        :type returns: pd.DataFrame
-        :param cov_matrix: covariance of asset returns
-        :type cov_matrix: pd.DataFrame.
-        :raises TypeError: if ``returns`` is not a dataframe
+        Parameters
+        ----------
+        returns : pd.DataFrame
+            asset historical returns
+        cov_matrix : pd.DataFrame
+            covariance of asset returns
+
+        Raises
+        ------
+        TypeError
+            if ``returns`` is not a dataframe
         """
         if returns is None and cov_matrix is None:
             raise ValueError("Either returns or cov_matrix must be provided")
@@ -79,12 +86,17 @@ class HRPOpt(base_optimizer.BaseOptimizer):
         """
         Compute the variance per cluster
 
-        :param cov: covariance matrix
-        :type cov: np.ndarray
-        :param cluster_items: tickers in the cluster
-        :type cluster_items: list
-        :return: the variance per cluster
-        :rtype: float
+        Parameters
+        ----------
+        cov : np.ndarray
+            covariance matrix
+        cluster_items : list
+            tickers in the cluster
+
+        Returns
+        -------
+        float
+            the variance per cluster
         """
         # Compute variance per cluster
         cov_slice = cov.loc[cluster_items, cluster_items]
@@ -97,10 +109,15 @@ class HRPOpt(base_optimizer.BaseOptimizer):
         """
         Sort clustered items by distance
 
-        :param link: linkage matrix after clustering
-        :type link: np.ndarray
-        :return: sorted list of indices
-        :rtype: list
+        Parameters
+        ----------
+        link : np.ndarray
+            linkage matrix after clustering
+
+        Returns
+        -------
+        list
+            sorted list of indices
         """
         return sch.to_tree(link, rd=False).pre_order()
 
@@ -110,12 +127,17 @@ class HRPOpt(base_optimizer.BaseOptimizer):
         Given the clusters, compute the portfolio that minimises risk by
         recursively traversing the hierarchical tree from the top.
 
-        :param cov: covariance matrix
-        :type cov: np.ndarray
-        :param ordered_tickers: list of tickers ordered by distance
-        :type ordered_tickers: str list
-        :return: raw portfolio weights
-        :rtype: pd.Series
+        Parameters
+        ----------
+        cov : np.ndarray
+            covariance matrix
+        ordered_tickers : str list
+            list of tickers ordered by distance
+
+        Returns
+        -------
+        pd.Series
+            raw portfolio weights
         """
         w = pd.Series(1.0, index=ordered_tickers)
         cluster_items = [ordered_tickers]  # initialize all items in one cluster
@@ -144,17 +166,22 @@ class HRPOpt(base_optimizer.BaseOptimizer):
         Construct a hierarchical risk parity portfolio, using Scipy hierarchical clustering
         (see `here <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html>`_)
 
-        :param linkage_method: which scipy linkage method to use
-        :type linkage_method: str
-        :return: weights for the HRP portfolio
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        linkage_method : str
+            which scipy linkage method to use
+
+        Returns
+        -------
+        OrderedDict
+            weights for the HRP portfolio
         """
         if linkage_method not in sch._LINKAGE_METHODS:
             raise ValueError("linkage_method must be one recognised by scipy")
 
         if self.returns is None:
             cov = self.cov_matrix
-            corr = risk_models.cov_to_corr(self.cov_matrix).round(6)
+            corr = cov_to_corr(self.cov_matrix).round(6)
         else:
             corr, cov = self.returns.corr(), self.returns.cov()
 
@@ -179,18 +206,27 @@ class HRPOpt(base_optimizer.BaseOptimizer):
         portfolio. Currently calculates expected return, volatility, and the Sharpe ratio
         assuming returns are daily
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0.
-                               The period of the risk-free rate should correspond to the
-                               frequency of expected returns.
-        :type risk_free_rate: float, optional
-        :param frequency: number of time periods in a year, defaults to 252 (the number
-                            of trading days in a year)
-        :type frequency: int, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, volatility, Sharpe ratio.
-        :rtype: (float, float, float)
+        Parameters
+        ----------
+        verbose : bool, optional
+            whether performance should be printed, defaults to False
+        risk_free_rate : float, optional
+            risk-free rate of borrowing/lending, defaults to 0.0.
+            The period of the risk-free rate should correspond to the
+            frequency of expected returns.
+        frequency : int, optional
+            number of time periods in a year, defaults to 252 (the number
+            of trading days in a year)
+
+        Raises
+        ------
+        ValueError
+            if weights have not been calculated yet
+
+        Returns
+        -------
+        (float, float, float)
+            expected return, volatility, Sharpe ratio.
         """
         if self.returns is None:
             cov = self.cov_matrix
@@ -199,6 +235,4 @@ class HRPOpt(base_optimizer.BaseOptimizer):
             cov = self.returns.cov() * frequency
             mu = self.returns.mean() * frequency
 
-        return base_optimizer.portfolio_performance(
-            self.weights, mu, cov, verbose, risk_free_rate
-        )
+        return portfolio_performance(self.weights, mu, cov, verbose, risk_free_rate)

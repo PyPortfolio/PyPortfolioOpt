@@ -7,10 +7,10 @@ by Marcos Lopez de Prado and David Bailey.
 import numpy as np
 import pandas as pd
 
-from . import base_optimizer
+from pypfopt.base import BaseOptimizer, portfolio_performance
 
 
-class CLA(base_optimizer.BaseOptimizer):
+class CLA(BaseOptimizer):
     """
     Instance variables:
 
@@ -49,16 +49,23 @@ class CLA(base_optimizer.BaseOptimizer):
 
     def __init__(self, expected_returns, cov_matrix, weight_bounds=(0, 1)):
         """
-        :param expected_returns: expected returns for each asset. Set to None if
-                                 optimising for volatility only.
-        :type expected_returns: pd.Series, list, np.ndarray
-        :param cov_matrix: covariance of returns for each asset
-        :type cov_matrix: pd.DataFrame or np.array
-        :param weight_bounds: minimum and maximum weight of an asset, defaults to (0, 1).
-                              Must be changed to (-1, 1) for portfolios with shorting.
-        :type weight_bounds: tuple (float, float) or (list/ndarray, list/ndarray) or list(tuple(float, float))
-        :raises TypeError: if ``expected_returns`` is not a series, list or array
-        :raises TypeError: if ``cov_matrix`` is not a dataframe or array
+        Parameters
+        ----------
+        expected_returns : pd.Series, list, or np.ndarray
+            expected returns for each asset. Set to None if
+            optimising for volatility only.
+        cov_matrix : pd.DataFrame or np.array
+            covariance of returns for each asset
+        weight_bounds : tuple (float, float) or (list/ndarray, list/ndarray) or list(tuple(float, float))
+            minimum and maximum weight of an asset, defaults to (0, 1).
+            Must be changed to (-1, 1) for portfolios with shorting.
+
+        Raises
+        ------
+        TypeError
+            if ``expected_returns`` is not a series, list or array
+        TypeError
+            if ``cov_matrix`` is not a dataframe or array
         """
         # Initialize the class
         self.mean = np.array(expected_returns).reshape((len(expected_returns), 1))
@@ -101,10 +108,15 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Helper method to map None to float infinity.
 
-        :param x: argument
-        :type x: float
-        :return: infinity if the argument was None otherwise x
-        :rtype: float
+        Parameters
+        ----------
+        x : float
+            argument
+
+        Returns
+        -------
+        float
+            infinity if the argument was None otherwise x
         """
         return float("-inf") if x is None else x
 
@@ -138,14 +150,16 @@ class CLA(base_optimizer.BaseOptimizer):
         g1 = np.dot(np.dot(onesF.T, covarF_inv), meanF)
         g2 = np.dot(np.dot(onesF.T, covarF_inv), onesF)
         if wB is None:
-            g, w1 = float(-self.ls[-1] * g1 / g2 + 1 / g2), 0
+            g = -self.ls[-1] * g1 / g2 + 1 / g2
+            w1 = 0
         else:
             onesB = np.ones(wB.shape)
             g3 = np.dot(onesB.T, wB)
             g4 = np.dot(covarF_inv, covarFB)
             w1 = np.dot(g4, wB)
             g4 = np.dot(onesF.T, w1)
-            g = float(-self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2)
+            g = -self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2
+        g = float(g[0, 0])
         # 2) compute weights
         w2 = np.dot(covarF_inv, onesF)
         w3 = np.dot(covarF_inv, meanF)
@@ -167,14 +181,16 @@ class CLA(base_optimizer.BaseOptimizer):
         # 3) Lambda
         if wB is None:
             # All free assets
-            return float((c4[i] - c1 * bi) / c), bi
+            res = (c4[i] - c1 * bi) / c
         else:
             onesB = np.ones(wB.shape)
             l1 = np.dot(onesB.T, wB)
             l2 = np.dot(covarF_inv, covarFB)
             l3 = np.dot(l2, wB)
             l2 = np.dot(onesF.T, l3)
-            return float(((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c), bi
+            res = ((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c
+        res = float(res[0, 0])
+        return res, bi
 
     def _get_matrices(self, f):
         # Slice covarF,covarFB,covarB,meanF,meanB,wF,wB
@@ -194,18 +210,30 @@ class CLA(base_optimizer.BaseOptimizer):
 
     @staticmethod
     def _reduce_matrix(matrix, listX, listY):
-        # Reduce a matrix to the provided list of rows and columns
+        """
+        Extract a submatrix from the given matrix using specified row and column indices.
+
+        Uses numpy advanced indexing with np.ix_ for vectorized selection,
+        which is significantly faster than the previous nested loop implementation
+        for large matrices.
+
+        Parameters
+        ----------
+        matrix : np.ndarray
+            input matrix to extract submatrix from
+        listX : list
+            row indices to select
+        listY : list
+            column indices to select
+
+        Returns
+        -------
+        np.ndarray or None
+            submatrix with selected rows and columns, or None if indices are empty
+        """
         if len(listX) == 0 or len(listY) == 0:
-            return
-        matrix_ = matrix[:, listY[0] : listY[0] + 1]
-        for i in listY[1:]:
-            a = matrix[:, i : i + 1]
-            matrix_ = np.append(matrix_, a, 1)
-        matrix__ = matrix_[listX[0] : listX[0] + 1, :]
-        for i in listX[1:]:
-            a = matrix_[i : i + 1, :]
-            matrix__ = np.append(matrix__, a, 0)
-        return matrix__
+            return None
+        return matrix[np.ix_(listX, listY)]
 
     def _purge_num_err(self, tol):
         # Purge violations of inequality constraints (associated with ill-conditioned cov matrix)
@@ -373,8 +401,10 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Maximise the Sharpe ratio.
 
-        :return: asset weights for the max-sharpe portfolio
-        :rtype: OrderedDict
+        Returns
+        -------
+        OrderedDict
+            asset weights for the max-sharpe portfolio
         """
         if not self.w:
             self._solve()
@@ -395,8 +425,10 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Minimise volatility.
 
-        :return: asset weights for the volatility-minimising portfolio
-        :rtype: OrderedDict
+        Returns
+        -------
+        OrderedDict
+            asset weights for the volatility-minimising portfolio
         """
         if not self.w:
             self._solve()
@@ -412,11 +444,20 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Efficiently compute the entire efficient frontier
 
-        :param points: rough number of points to evaluate, defaults to 100
-        :type points: int, optional
-        :raises ValueError: if weights have not been computed
-        :return: return list, std list, weight list
-        :rtype: (float list, float list, np.ndarray list)
+        Parameters
+        ----------
+        points : int, optional
+            rough number of points to evaluate, defaults to 100
+
+        Raises
+        ------
+        ValueError
+            if weights have not been computed
+
+        Returns
+        -------
+        (float list, float list, np.ndarray list)
+            return list, std list, weight list
         """
         if not self.w:
             self._solve()
@@ -448,15 +489,24 @@ class CLA(base_optimizer.BaseOptimizer):
         After optimising, calculate (and optionally print) the performance of the optimal
         portfolio. Currently calculates expected return, volatility, and the Sharpe ratio.
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0
-        :type risk_free_rate: float, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, volatility, Sharpe ratio.
-        :rtype: (float, float, float)
+        Parameters
+        ----------
+        verbose : bool, optional
+            whether performance should be printed, defaults to False
+        risk_free_rate : float, optional
+            risk-free rate of borrowing/lending, defaults to 0.0
+
+        Raises
+        ------
+        ValueError
+            if weights have not been calculated yet
+
+        Returns
+        -------
+        (float, float, float)
+            expected return, volatility, Sharpe ratio.
         """
-        return base_optimizer.portfolio_performance(
+        return portfolio_performance(
             self.weights,
             self.expected_returns,
             self.cov_matrix,

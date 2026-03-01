@@ -44,12 +44,14 @@ def _plot_io(**kwargs):
     """
     Helper method to optionally save the figure to file.
 
-    :param filename: name of the file to save to, defaults to None (doesn't save)
-    :type filename: str, optional
-    :param dpi: dpi of figure to save or plot, defaults to 300
-    :type dpi: int (between 50-500)
-    :param showfig: whether to plt.show() the figure, defaults to False
-    :type showfig: bool, optional
+    Parameters
+    ----------
+    filename : str, optional
+        name of the file to save to, defaults to None (doesn't save)
+    dpi : int, optional
+        dpi of figure to save or plot. Defaults to 300. Should be between 50 and 500.
+    showfig : bool, optional
+        whether to plt.show() the figure, defaults to False
     """
     plt = _import_matplotlib()
 
@@ -69,16 +71,20 @@ def plot_covariance(cov_matrix, plot_correlation=False, show_tickers=True, **kwa
     Generate a basic plot of the covariance (or correlation) matrix, given a
     covariance matrix.
 
-    :param cov_matrix: covariance matrix
-    :type cov_matrix: pd.DataFrame or np.ndarray
-    :param plot_correlation: whether to plot the correlation matrix instead, defaults to False.
-    :type plot_correlation: bool, optional
-    :param show_tickers: whether to use tickers as labels (not recommended for large portfolios),
-                        defaults to True
-    :type show_tickers: bool, optional
+    Parameters
+    ----------
+    cov_matrix : pd.DataFrame or np.ndarray
+        covariance matrix
+    plot_correlation : bool, optional
+        whether to plot the correlation matrix instead, defaults to False.
+    show_tickers : bool, optional
+        whether to use tickers as labels (not recommended for large portfolios),
+        defaults to True
 
-    :return: matplotlib axis
-    :rtype: matplotlib.axes object
+    Returns
+    -------
+    matplotlib.axes object
+        matplotlib axis
     """
     plt = _import_matplotlib()
 
@@ -107,17 +113,22 @@ def plot_dendrogram(hrp, ax=None, show_tickers=True, **kwargs):
     """
     Plot the clusters in the form of a dendrogram.
 
-    :param hrp: HRPpt object that has already been optimized.
-    :type hrp: object
-    :param show_tickers: whether to use tickers as labels (not recommended for large portfolios),
-                        defaults to True
-    :type show_tickers: bool, optional
-    :param filename: name of the file to save to, defaults to None (doesn't save)
-    :type filename: str, optional
-    :param showfig: whether to plt.show() the figure, defaults to False
-    :type showfig: bool, optional
-    :return: matplotlib axis
-    :rtype: matplotlib.axes object
+    Parameters
+    ----------
+    hrp : object
+        HRPpt object that has already been optimized.
+    show_tickers : bool, optional
+        whether to use tickers as labels (not recommended for large portfolios),
+        defaults to True
+    filename : str, optional
+        name of the file to save to, defaults to None (doesn't save)
+    showfig : bool, optional
+        whether to plt.show() the figure, defaults to False
+
+    Returns
+    -------
+    matplotlib.axes object
+        matplotlib axis
     """
     plt = _import_matplotlib()
 
@@ -324,29 +335,35 @@ def plot_efficient_frontier(
     """
     Plot the efficient frontier based on either a CLA or EfficientFrontier object.
 
-    :param opt: an instantiated optimizer object BEFORE optimising an objective
-    :type opt: EfficientFrontier or CLA
-    :param ef_param: [EfficientFrontier] whether to use a range over utility, risk, or return.
-                     Defaults to "return".
-    :type ef_param: str, one of {"utility", "risk", "return"}.
-    :param ef_param_range: the range of parameter values for ef_param.
-                           If None, automatically compute a range from min->max return.
-    :type ef_param_range: np.array or list (recommended to use np.arange or np.linspace)
-    :param points: number of points to plot, defaults to 100. This is overridden if
-                   an `ef_param_range` is provided explicitly.
-    :type points: int, optional
-    :param show_assets: whether we should plot the asset risks/returns also, defaults to True
-    :type show_assets: bool, optional
-    :param show_tickers: whether we should annotate each asset with its ticker, defaults to False
-    :type show_tickers: bool, optional
-    :param interactive: Switch rendering engine between Plotly and Matplotlib
-    :type show_tickers: bool, optional
-    :param filename: name of the file to save to, defaults to None (doesn't save)
-    :type filename: str, optional
-    :param showfig: whether to plt.show() the figure, defaults to False
-    :type showfig: bool, optional
-    :return: matplotlib axis
-    :rtype: matplotlib.axes object
+    Parameters
+    ----------
+    opt : EfficientFrontier or CLA
+        an instantiated optimizer object BEFORE optimising an objective
+    ef_param : {'utility', 'risk', 'return'}, optional
+        [EfficientFrontier] whether to use a range over utility, risk, or return.
+        Defaults to "return".
+    ef_param_range : np.array or list, optional
+        the range of parameter values for ef_param.
+        If None, automatically compute a range from min->max return.
+        (recommended to use np.arange or np.linspace)
+    points : int, optional
+        number of points to plot, defaults to 100. This is overridden if
+        an `ef_param_range` is provided explicitly.
+    show_assets : bool, optional
+        whether we should plot the asset risks/returns also, defaults to True
+    show_tickers : bool, optional
+        whether we should annotate each asset with its ticker, defaults to False
+    interactive : bool, optional
+        Switch rendering engine between Plotly and Matplotlib
+    filename : str, optional
+        name of the file to save to, defaults to None (doesn't save)
+    showfig : bool, optional
+        whether to plt.show() the figure, defaults to False
+
+    Returns
+    -------
+    matplotlib.axes object
+        matplotlib axis
     """
     plt = _import_matplotlib()
 
@@ -399,12 +416,17 @@ def plot_weights(weights, ax=None, **kwargs):
     """
     Plot the portfolio weights as a horizontal bar chart
 
-    :param weights: the weights outputted by any PyPortfolioOpt optimizer
-    :type weights: {ticker: weight} dict
-    :param ax: ax to plot to, optional
-    :type ax: matplotlib.axes
-    :return: matplotlib axis
-    :rtype: matplotlib.axes
+    Parameters
+    ----------
+    weights : {ticker: weight} dict
+        the weights outputted by any PyPortfolioOpt optimizer
+    ax : matplotlib.axes, optional
+        ax to plot to
+
+    Returns
+    -------
+    matplotlib.axes
+        matplotlib axis
     """
     plt = _import_matplotlib()
 

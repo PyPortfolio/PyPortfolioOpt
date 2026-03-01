@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from pypfopt import EfficientFrontier, exceptions, objective_functions
-from pypfopt.base_optimizer import BaseOptimizer, portfolio_performance
+from pypfopt.base import BaseOptimizer, portfolio_performance
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
 
@@ -218,7 +218,7 @@ def test_save_weights_to_file():
 
 def test_portfolio_performance():
     """
-    Cover logic in base_optimizer.portfolio_performance not covered elsewhere.
+    Cover logic in base.portfolio_performance not covered elsewhere.
     """
     ef = setup_efficient_frontier()
     ef.min_volatility()

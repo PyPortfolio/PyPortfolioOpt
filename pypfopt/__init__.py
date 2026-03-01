@@ -14,7 +14,7 @@ from .efficient_frontier import (
 from .hierarchical_portfolio import HRPOpt
 from .risk_models import CovarianceShrinkage
 
-__version__ = "1.5.6"
+__version__ = "1.6.0"
 
 __all__ = [
     "market_implied_prior_returns",
