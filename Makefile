@@ -21,6 +21,8 @@ RESET := \033[0m
 .PHONY: install install-uv test fmt
 
 UV_INSTALL_DIR := ./bin
+TESTS_FOLDER := tests
+SOURCE_FOLDER := pypfopt
 
 ##@ Bootstrap
 install-uv: ## ensure uv (and uvx) are installed locally
@@ -33,12 +35,28 @@ install-uv: ## ensure uv (and uvx) are installed locally
 	fi
 
 install: install-uv ## install
-	@printf "${BLUE}[INFO] Creating virtual environment...${RESET}\n"
-	# Create the virtual environment
-	@./bin/uv venv --python 3.12 || { printf "${RED}[ERROR] Failed to create virtual environment${RESET}\n"; exit 1; }
-	@printf "${BLUE}[INFO] Installing dependencies${RESET}\n"
+	# Create the virtual environment only if it doesn't exist
+	@if [ ! -d ".venv" ]; then \
+	  ./bin/uv venv --python 3.12 || { printf "${RED}[ERROR] Failed to create virtual environment${RESET}\n"; exit 1; }; \
+	else \
+	  printf "${BLUE}[INFO] Using existing virtual environment at .venv, skipping creation${RESET}\n"; \
+	fi
+
+	# Install the dependencies from pyproject.toml
 	@./bin/uv sync --all-extras --frozen || { printf "${RED}[ERROR] Failed to install dependencies${RESET}\n"; exit 1; }
 
+
+clean: ## clean
+	@printf "${BLUE}Cleaning project...${RESET}\n"
+	# do not clean .env files
+	@git clean -d -X -f -e .env -e '.env.*'
+	@rm -rf dist build *.egg-info .coverage .pytest_cache
+	@printf "${BLUE}Removing local branches with no remote counterpart...${RESET}\n"
+	@git fetch --prune
+	@git branch -vv \
+	  | grep ': gone]' \
+	  | awk '{print $1}' \
+	  | xargs -r git branch -D 2>/dev/null || true
 
 ##@ Development and Testing
 test: install ## run all tests
@@ -49,7 +67,15 @@ test: install ## run all tests
 
 fmt: install-uv ## check the pre-commit hooks and the linting
 	@./bin/uvx pre-commit run --all-files
-	@./bin/uvx deptry .
+
+deptry: install-uv ## run deptry if pyproject.toml exists
+	@./bin/uvx deptry "${SOURCE_FOLDER}"
+
+##@ Documentation
+book: test ## compile the companion book
+	@/bin/sh .github/scripts/book.sh
+	@./bin/uvx minibook --title "${BOOK_TITLE}" --subtitle "${BOOK_SUBTITLE}" --links "$$(python3 -c 'import json,sys; print(json.dumps(json.load(open("_book/links.json"))))')" --output "_book"
+	@touch "_book/.nojekyll"
 
 ##@ Meta
 help: ## Display this help message
