@@ -132,7 +132,7 @@ jobs:
 
       - name: Install base + dev dependencies
         run: |
-          uv venv
+          uv venv --clear
           uv pip install ".[dev]"
 
       - name: Verify dependency graph
@@ -180,7 +180,7 @@ jobs:
 
       - name: Install full dependency set
         run: |
-          uv venv
+          uv venv --clear
           uv pip install ".[dev,all_extras]"
 
       - name: Verify dependency graph
@@ -221,7 +221,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv venv
+          uv venv --clear
           uv pip install ".[dev,all_extras]"
           uv pip install pytest-cov
 
@@ -279,7 +279,7 @@ jobs:
 
       - name: Install notebook dependencies
         run: |
-          uv venv
+          uv venv --clear
           uv pip install ".[dev,all_extras,notebook_test]"
 
       - name: Collect notebooks
