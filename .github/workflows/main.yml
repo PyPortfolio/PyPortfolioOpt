@@ -62,9 +62,6 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install pre-commit
-        run: uv pip install pre-commit
-
       - name: Determine changed files (PR only)
         id: changed-files
         run: |
@@ -82,7 +79,7 @@ jobs:
       - name: Run pre-commit
         run: |
           if [ -n "$CHANGED_FILES" ]; then
-            uv run pre-commit run \
+            uvx pre-commit run \
               --color always \
               --files $CHANGED_FILES \
               --show-diff-on-failure
