@@ -225,19 +225,50 @@ jobs:
             --cov=./ \
             --cov-report=xml
 
-      # Upload currently disabled
-      - name: Upload coverage to Codecov
-        if: false
-        uses: codecov/codecov-action@v5
+
+  # ================================================================
+  # 5️⃣ NOTEBOOK CHANGE DETECTION
+  #
+  # Checks whether any notebook-relevant paths changed.
+  # Skips expensive notebook execution on unrelated PRs.
+  #
+  # On push to main, always runs notebooks (something was merged).
+  # On PRs, diffs against origin/main to detect changes in:
+  #   - cookbook/     (notebooks themselves)
+  #   - pypfopt/      (library code notebooks depend on)
+  #   - pyproject.toml (dependency changes)
+  # ================================================================
+  detect-notebooks-change:
+    needs: code-quality
+    runs-on: ubuntu-latest
+    outputs:
+      notebooks: ${{ steps.check.outputs.notebooks }}
+
+    steps:
+      - uses: actions/checkout@v4
         with:
-          files: ./coverage.xml
-          fail_ci_if_error: true
+          fetch-depth: 0
+
+      - name: Fetch main branch
+        run: git fetch origin main
+
+      - name: Check if notebook-related files changed
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "notebooks=true" >> $GITHUB_OUTPUT
+          elif git diff --quiet origin/main -- cookbook/ pypfopt/ pyproject.toml; then
+            echo "notebooks=false" >> $GITHUB_OUTPUT
+          else
+            echo "notebooks=true" >> $GITHUB_OUTPUT
+          fi
 
 
   # ================================================================
-  # 5️⃣ NOTEBOOK TESTING
+  # 6️⃣ NOTEBOOK TESTING
   #
   # Executes Jupyter notebooks via nbmake.
+  # Only runs when notebook-relevant files changed (see above).
   #
   # For each Python version:
   #   - Install interpreter via uv
@@ -250,7 +281,8 @@ jobs:
   #   - No silent drift between code and notebooks
   # ================================================================
   notebooks:
-    needs: code-quality
+    needs: detect-notebooks-change
+    if: ${{ needs.detect-notebooks-change.outputs.notebooks == 'true' }}
     runs-on: ubuntu-latest
 
     strategy:
