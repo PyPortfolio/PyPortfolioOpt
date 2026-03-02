@@ -208,14 +208,9 @@ jobs:
   
   # TODO: should we run this as a substep of test-no-deps and only upload for a specific version?
   codecov:
-    name: coverage (${{ matrix.python-version }} on ${{ matrix.os }}
+    name: coverage
     needs: code-quality
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.12"]
-
+    runs-on: "ubuntu-latest"
     steps:
       - uses: actions/checkout@v6
 
@@ -223,7 +218,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-          python-version: ${{ matrix.python-version }}
+          python-version: 3.12
       
       - name: Create virtual environment
         run: uv venv
