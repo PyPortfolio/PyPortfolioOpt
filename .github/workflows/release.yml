@@ -38,15 +38,18 @@ jobs:
   # This prevents publishing a version that does not match
   # the declared package metadata.
   #
-  # We run inside the official uv container to:
-  #   - guarantee Python 3.11+ (for tomllib)
-  #   - avoid system dependency drift
+  # Python is provisioned via uv (consistent with all other jobs).
+  # tomllib is stdlib in Python 3.11+.
   # ================================================================
   check_tag:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
 
       - name: Validate tag matches pyproject version
         run: |
@@ -56,9 +59,9 @@ jobs:
           # Remove leading "v" (common semantic versioning style)
           GH_TAG_NAME="${TAG#v}"
 
-          # Read version from pyproject.toml using Python
-          # We rely on tomllib (Python 3.11+) for robust parsing.
-          PKG_VERSION=$(python - <<'PY'
+          # Read version from pyproject.toml via uv-managed Python.
+          # tomllib is stdlib in Python 3.11+.
+          PKG_VERSION=$(uv run python - <<'PY'
           import pathlib, tomllib
           data = tomllib.loads(pathlib.Path("pyproject.toml").read_text())
           print(data["project"]["version"])
@@ -92,7 +95,7 @@ jobs:
     needs: check_tag
 
     container:
-      image: ghcr.io/astral-sh/uv:0.9.30-bookworm
+      image: ghcr.io/astral-sh/uv:bookworm
 
     steps:
       - uses: actions/checkout@v4
