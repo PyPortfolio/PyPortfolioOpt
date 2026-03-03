@@ -62,7 +62,6 @@ all_extras = [
 dev = [
     "pytest>=9.0.0",
     "pytest-cov>=7.0.0",
-    "yfinance>=0.2.66",
 ]
 
 # notebook tests
@@ -86,6 +85,9 @@ requires = [
 
 [tool.setuptools.packages.find]
 exclude = ["example", "example.*", "tests", "tests.*"]
+
+[tool.setuptools.package-data]
+pypfopt = ["data/*.csv"]
 
 [tool.ruff]
 line-length = 88
