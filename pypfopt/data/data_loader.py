@@ -1,5 +1,6 @@
-import pandas as pd
 from importlib import resources
+
+import pandas as pd
 
 
 def _load_raw_data(filename: str, **read_csv_kwargs):
@@ -8,7 +9,6 @@ def _load_raw_data(filename: str, **read_csv_kwargs):
 
 
 def load_stockdata(tickers: list = None, start: str = None, end: str = None):
-
     df = _load_raw_data("stock_prices.csv", parse_dates=["date"])
 
     if start is not None:
@@ -24,7 +24,6 @@ def load_stockdata(tickers: list = None, start: str = None, end: str = None):
 
 
 def load_marketcaps(tickers: list = None):
-
     df = _load_raw_data("market_caps.csv")
 
     if tickers is not None:
@@ -39,7 +38,6 @@ def load_marketcaps(tickers: list = None):
 
 
 def available_tickers():
-
     df = _load_raw_data("stock_prices.csv", parse_dates=["date"])
     cols = [c for c in df.columns if c != "date"]
     cols.sort()
