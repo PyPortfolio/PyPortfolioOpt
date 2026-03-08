@@ -50,77 +50,6 @@ jobs:
             echo "No changed files to check."
           fi
 
-  detect-notebooks-change:
-    needs: code-quality
-    name: detect change affecting notebooks
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
-    outputs:
-      notebooks: ${{ steps.check.outputs.notebooks }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Fetch main branch
-        run: git fetch origin main
-
-      - name: Check if cookbook, pypfopt or pyproject.toml changed
-        id: check
-        run: |
-          if git diff --quiet origin/main -- cookbook/ pypfopt/ pyproject.toml; then
-            echo "No notebook related changes"
-            echo "notebooks=false" >> $GITHUB_OUTPUT
-          else
-            echo "Detected changes in notebooks or pypfopt"
-            echo "notebooks=true" >> $GITHUB_OUTPUT
-          fi
-
-  run-notebook-examples:
-    needs: detect-notebooks-change
-    if: ${{ needs.detect-notebooks-change.outputs.notebooks == 'true' }}
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-      fail-fast: false
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          python-version: ${{ matrix.python-version }}
-
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-
-      - name: Create virtual environment
-        run: uv venv
-
-      - name: Install dependencies
-        shell: bash
-        run: uv pip install ".[dev,all_extras,notebook_test]" --no-cache
-
-      - name: Show dependencies
-        run: uv pip list
-
-      - name: Collect notebooks
-        id: notebooks
-        shell: bash
-        run: |
-          NOTEBOOKS=$(find cookbook -name '*.ipynb' -print0 | xargs -0 echo)
-          echo "notebooks=$NOTEBOOKS" >> $GITHUB_OUTPUT
-
-      - name: Run notebooks
-        shell: bash
-        run: |
-          uv run pytest --reruns 3 --nbmake --nbmake-timeout=3600 -vv ${{ steps.notebooks.outputs.notebooks }}
-
   test-nosoftdeps:
     needs: code-quality
     name: test-nosoftdeps (${{ matrix.python-version }}, ${{ matrix.os }})
@@ -244,3 +173,74 @@ jobs:
         with:
           files: ./coverage.xml
           fail_ci_if_error: true
+
+  detect-notebooks-change:
+    needs: code-quality
+    name: detect change affecting notebooks
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      notebooks: ${{ steps.check.outputs.notebooks }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main branch
+        run: git fetch origin main
+
+      - name: Check if cookbook, pypfopt or pyproject.toml changed
+        id: check
+        run: |
+          if git diff --quiet origin/main -- cookbook/ pypfopt/ pyproject.toml; then
+            echo "No notebook related changes"
+            echo "notebooks=false" >> $GITHUB_OUTPUT
+          else
+            echo "Detected changes in notebooks or pypfopt"
+            echo "notebooks=true" >> $GITHUB_OUTPUT
+          fi
+
+  run-notebook-examples:
+    needs: detect-notebooks-change
+    if: ${{ needs.detect-notebooks-change.outputs.notebooks == 'true' }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install dependencies
+        shell: bash
+        run: uv pip install ".[dev,all_extras,notebook_test]" --no-cache
+
+      - name: Show dependencies
+        run: uv pip list
+
+      - name: Collect notebooks
+        id: notebooks
+        shell: bash
+        run: |
+          NOTEBOOKS=$(find cookbook -name '*.ipynb' -print0 | xargs -0 echo)
+          echo "notebooks=$NOTEBOOKS" >> $GITHUB_OUTPUT
+
+      - name: Run notebooks
+        shell: bash
+        run: |
+          uv run pytest --reruns 3 --nbmake --nbmake-timeout=3600 -vv ${{ steps.notebooks.outputs.notebooks }}
