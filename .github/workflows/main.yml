@@ -1,4 +1,4 @@
-name: Install and test
+name: Test
 
 on:
   push:
