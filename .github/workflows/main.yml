@@ -104,7 +104,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: uv pip install ".[all_extras,notebook_test]" --group dev --no-cache
+        run: uv pip install ".[dev,all_extras,notebook_test]" --no-cache
 
       - name: Show dependencies
         run: uv pip list
@@ -153,7 +153,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: uv pip install "." --group dev --no-cache
+        run: uv pip install ".[dev]" --no-cache
 
       - name: Show dependencies
         run: uv pip list
@@ -193,7 +193,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: uv pip install -e ".[all_extras]" --group dev --no-cache
+        run: uv pip install -e ".[all_extras, dev]" --no-cache
 
       - name: Show dependencies
         run: uv pip list
@@ -228,7 +228,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: uv pip install . --group dev --group cov
+        run: uv pip install ".[dev,cov]"
 
       - name: Show dependencies
         run: uv pip list

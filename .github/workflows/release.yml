@@ -91,7 +91,7 @@ jobs:
         run: echo "WHEELNAME=$(ls ./wheelhouse/pyportfolioopt-*none-any.whl)" >> $env:GITHUB_ENV
 
       - name: Install wheel and extras
-        run: python3 -m pip install "${{ env.WHEELNAME }}[all_extras]" --group dev
+        run: python3 -m pip install "${{ env.WHEELNAME }}[all_extras, dev]"
 
       - name: Run tests
         run: python -m pytest tests
