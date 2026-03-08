@@ -92,7 +92,7 @@ jobs:
 
   test-full:
     needs: test-nosoftdeps
-    name: test-full (${{ matrix.python-version }}, ${{ matrix.os }})
+    name: allsoftdeps (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       MPLBACKEND: Agg # https://github.com/orgs/community/discussions/26434
