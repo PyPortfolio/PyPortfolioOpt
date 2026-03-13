@@ -150,7 +150,9 @@ Sharpe Ratio: 0.66
 cla = CLA(mu, S, use_cvxcla=False)  # Use use_cvxcla=True for faster performance
 print(cla.max_sharpe())
 cla.portfolio_performance(verbose=True)
-plotting.plot_efficient_frontier(cla, interactive=True, showfig=False)  # Use showfig=True to open browser for interactive plot
+plotting.plot_efficient_frontier(
+    cla, interactive=True, showfig=False
+)  # Use showfig=True to open browser for interactive plot
 
 """
 {'GOOG': 0.020889868669945022,
