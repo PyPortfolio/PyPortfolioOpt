@@ -114,9 +114,9 @@ Basic Usage
                 If you would like to use the ``portfolio_performance`` function independently of any
                 optimizer (e.g for debugging purposes), you can use::
 
-                    from pypfopt import base_optimizer
+                    from pypfopt.base import portfolio_performance
 
-                    base_optimizer.portfolio_performance(
+                    portfolio_performance(
                         weights, expected_returns, cov_matrix, verbose=True, risk_free_rate=0.02
                     )
 
@@ -135,7 +135,7 @@ EfficientFrontier inherits from the BaseConvexOptimizer class. In particular, th
 add constraints and objectives are documented below:
 
 
-.. class:: pypfopt.base_optimizer.BaseConvexOptimizer
+.. class:: pypfopt.base.BaseConvexOptimizer
     :noindex:
 
     .. automethod:: add_constraint

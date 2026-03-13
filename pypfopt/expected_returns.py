@@ -42,13 +42,18 @@ def returns_from_prices(prices, log_returns=False):
     """
     Calculate the returns given prices.
 
-    :param prices: adjusted (daily) closing prices of the asset, each row is a
-                   date and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: (daily) returns
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted (daily) closing prices of the asset, each row is a
+        date and each column is a ticker/id.
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.DataFrame
+        (daily) returns
     """
     if log_returns:
         returns = np.log(1 + prices.pct_change(fill_method=None)).dropna(how="all")
@@ -63,12 +68,17 @@ def prices_from_returns(returns, log_returns=False):
     the initial prices are all set to 1, but it behaves as intended when passed
     to any PyPortfolioOpt method.
 
-    :param returns: (daily) percentage returns of the assets
-    :type returns: pd.DataFrame
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: (daily) pseudo-prices.
-    :rtype: pd.DataFrame
+    Parameters
+    ----------
+    returns : pd.DataFrame
+        (daily) percentage returns of the assets
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.DataFrame
+        (daily) pseudo-prices.
     """
     if log_returns:
         ret = np.exp(returns)
@@ -82,21 +92,29 @@ def return_model(prices, method="mean_historical_return", **kwargs):
     """
     Compute an estimate of future returns, using the return model specified in ``method``.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param method: the return model to use. Should be one of:
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        if true, the first argument is returns instead of prices. Defaults to False.
+    method : str, optional
+        the return model to use. Should be one of:
 
         - ``mean_historical_return``
         - ``ema_historical_return``
         - ``capm_return``
 
-    :type method: str, optional
-    :raises NotImplementedError: if the supplied method is not recognised
-    :return: annualised sample covariance matrix
-    :rtype: pd.DataFrame
+    Raises
+    ------
+    NotImplementedError
+        if the supplied method is not recognised
+
+    Returns
+    -------
+    pd.DataFrame
+        annualised sample covariance matrix
     """
     if method == "mean_historical_return":
         return mean_historical_return(prices, **kwargs)
@@ -116,22 +134,27 @@ def mean_historical_return(
     Use ``compounding`` to toggle between the default geometric mean (CAGR) and the
     arithmetic mean.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-                         These **should not** be log returns.
-    :type returns_data: bool, defaults to False.
-    :param compounding: computes geometric mean returns if True,
-                        arithmetic otherwise, optional.
-    :type compounding: bool, defaults to True
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year)
-    :type frequency: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: annualised mean (daily) return for each asset
-    :rtype: pd.Series
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        if true, the first argument is returns instead of prices.
+        These **should not** be log returns. Defaults to False.
+    compounding : bool, optional
+        computes geometric mean returns if True,
+        arithmetic otherwise. Defaults to True.
+    frequency : int, optional
+        number of time periods in a year, defaults to 252 (the number
+        of trading days in a year)
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.Series
+        annualised mean (daily) return for each asset
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("prices are not in a dataframe", RuntimeWarning)
@@ -160,24 +183,29 @@ def ema_historical_return(
     Calculate the exponentially-weighted mean of (daily) historical returns, giving
     higher weight to more recent data.
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                   and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param returns_data: if true, the first argument is returns instead of prices.
-                         These **should not** be log returns.
-    :type returns_data: bool, defaults to False.
-    :param compounding: computes geometric mean returns if True,
-                        arithmetic otherwise, optional.
-    :type compounding: bool, defaults to True
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year)
-    :type frequency: int, optional
-    :param span: the time-span for the EMA, defaults to 500-day EMA.
-    :type span: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: annualised exponentially-weighted mean (daily) return of each asset
-    :rtype: pd.Series
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        if true, the first argument is returns instead of prices.
+        These **should not** be log returns. Defaults to False.
+    compounding : bool, optional
+        computes geometric mean returns if True,
+        arithmetic otherwise. Defaults to True.
+    frequency : int, optional
+        number of time periods in a year, defaults to 252 (the number
+        of trading days in a year)
+    span : int, optional
+        the time-span for the EMA, defaults to 500-day EMA.
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.Series
+        annualised exponentially-weighted mean (daily) return of each asset
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("prices are not in a dataframe", RuntimeWarning)
@@ -214,27 +242,32 @@ def capm_return(
         R_i = R_f + \\beta_i (E(R_m) - R_f)
 
 
-    :param prices: adjusted closing prices of the asset, each row is a date
-                    and each column is a ticker/id.
-    :type prices: pd.DataFrame
-    :param market_prices: adjusted closing prices of the benchmark, defaults to None
-    :type market_prices: pd.DataFrame, optional
-    :param returns_data: if true, the first arguments are returns instead of prices.
-    :type returns_data: bool, defaults to False.
-    :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0.
-                           You should use the appropriate time period, corresponding
-                           to the frequency parameter.
-    :type risk_free_rate: float, optional
-    :param compounding: computes geometric mean returns if True,
-                        arithmetic otherwise, optional.
-    :type compounding: bool, defaults to True
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                        of trading days in a year)
-    :type frequency: int, optional
-    :param log_returns: whether to compute using log returns
-    :type log_returns: bool, defaults to False
-    :return: annualised return estimate
-    :rtype: pd.Series
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    market_prices : pd.DataFrame, optional
+        adjusted closing prices of the benchmark, defaults to None
+    returns_data : bool, optional
+        if true, the first arguments are returns instead of prices. Defaults to False.
+    risk_free_rate : float, optional
+        risk-free rate of borrowing/lending, defaults to 0.0.
+        You should use the appropriate time period, corresponding
+        to the frequency parameter.
+    compounding : bool, optional
+        computes geometric mean returns if True,
+        arithmetic otherwise. Defaults to True.
+    frequency : int, optional
+        number of time periods in a year, defaults to 252 (the number
+        of trading days in a year)
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.Series
+        annualised return estimate
     """
     if not isinstance(prices, pd.DataFrame):
         warnings.warn("prices are not in a dataframe", RuntimeWarning)

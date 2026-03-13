@@ -7,10 +7,10 @@ by Marcos Lopez de Prado and David Bailey.
 import numpy as np
 import pandas as pd
 
-from . import base_optimizer
+from pypfopt.base import BaseOptimizer, portfolio_performance
 
 
-class CLA(base_optimizer.BaseOptimizer):
+class CLA(BaseOptimizer):
     """
     Instance variables:
 
@@ -49,18 +49,23 @@ class CLA(base_optimizer.BaseOptimizer):
 
     def __init__(self, expected_returns, cov_matrix, weight_bounds=(0, 1), use_cvxcla=False):
         """
-        :param expected_returns: expected returns for each asset. Set to None if
-                                 optimising for volatility only.
-        :type expected_returns: pd.Series, list, np.ndarray
-        :param cov_matrix: covariance of returns for each asset
-        :type cov_matrix: pd.DataFrame or np.array
-        :param weight_bounds: minimum and maximum weight of an asset, defaults to (0, 1).
-                              Must be changed to (-1, 1) for portfolios with shorting.
-        :type weight_bounds: tuple (float, float) or (list/ndarray, list/ndarray) or list(tuple(float, float))
-        :param use_cvxcla: if True, use cvxcla backend for faster performance. Defaults to False.
-        :type use_cvxcla: bool
-        :raises TypeError: if ``expected_returns`` is not a series, list or array
-        :raises TypeError: if ``cov_matrix`` is not a dataframe or array
+        Parameters
+        ----------
+        expected_returns : pd.Series, list, or np.ndarray
+            expected returns for each asset. Set to None if
+            optimising for volatility only.
+        cov_matrix : pd.DataFrame or np.array
+            covariance of returns for each asset
+        weight_bounds : tuple (float, float) or (list/ndarray, list/ndarray) or list(tuple(float, float))
+            minimum and maximum weight of an asset, defaults to (0, 1).
+            Must be changed to (-1, 1) for portfolios with shorting.
+
+        Raises
+        ------
+        TypeError
+            if ``expected_returns`` is not a series, list or array
+        TypeError
+            if ``cov_matrix`` is not a dataframe or array
         """
         # Store backend choice
         self.use_cvxcla = use_cvxcla
@@ -191,10 +196,15 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Helper method to map None to float infinity.
 
-        :param x: argument
-        :type x: float
-        :return: infinity if the argument was None otherwise x
-        :rtype: float
+        Parameters
+        ----------
+        x : float
+            argument
+
+        Returns
+        -------
+        float
+            infinity if the argument was None otherwise x
         """
         return float("-inf") if x is None else x
 
@@ -295,14 +305,19 @@ class CLA(base_optimizer.BaseOptimizer):
         which is significantly faster than the previous nested loop implementation
         for large matrices.
 
-        :param matrix: input matrix to extract submatrix from
-        :type matrix: np.ndarray
-        :param listX: row indices to select
-        :type listX: list
-        :param listY: column indices to select
-        :type listY: list
-        :return: submatrix with selected rows and columns, or None if indices are empty
-        :rtype: np.ndarray or None
+        Parameters
+        ----------
+        matrix : np.ndarray
+            input matrix to extract submatrix from
+        listX : list
+            row indices to select
+        listY : list
+            column indices to select
+
+        Returns
+        -------
+        np.ndarray or None
+            submatrix with selected rows and columns, or None if indices are empty
         """
         if len(listX) == 0 or len(listY) == 0:
             return None
@@ -474,8 +489,10 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Maximise the Sharpe ratio.
 
-        :return: asset weights for the max-sharpe portfolio
-        :rtype: OrderedDict
+        Returns
+        -------
+        OrderedDict
+            asset weights for the max-sharpe portfolio
         """
         # Use cvxcla backend if enabled
         if self.use_cvxcla:
@@ -504,8 +521,10 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Minimise volatility.
 
-        :return: asset weights for the volatility-minimising portfolio
-        :rtype: OrderedDict
+        Returns
+        -------
+        OrderedDict
+            asset weights for the volatility-minimising portfolio
         """
         # Use cvxcla backend if enabled
         if self.use_cvxcla:
@@ -530,11 +549,20 @@ class CLA(base_optimizer.BaseOptimizer):
         """
         Efficiently compute the entire efficient frontier
 
-        :param points: rough number of points to evaluate, defaults to 100
-        :type points: int, optional
-        :raises ValueError: if weights have not been computed
-        :return: return list, std list, weight list
-        :rtype: (float list, float list, np.ndarray list)
+        Parameters
+        ----------
+        points : int, optional
+            rough number of points to evaluate, defaults to 100
+
+        Raises
+        ------
+        ValueError
+            if weights have not been computed
+
+        Returns
+        -------
+        (float list, float list, np.ndarray list)
+            return list, std list, weight list
         """
         # Use cvxcla backend if enabled
         if self.use_cvxcla:
@@ -576,15 +604,24 @@ class CLA(base_optimizer.BaseOptimizer):
         After optimising, calculate (and optionally print) the performance of the optimal
         portfolio. Currently calculates expected return, volatility, and the Sharpe ratio.
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0
-        :type risk_free_rate: float, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, volatility, Sharpe ratio.
-        :rtype: (float, float, float)
+        Parameters
+        ----------
+        verbose : bool, optional
+            whether performance should be printed, defaults to False
+        risk_free_rate : float, optional
+            risk-free rate of borrowing/lending, defaults to 0.0
+
+        Raises
+        ------
+        ValueError
+            if weights have not been calculated yet
+
+        Returns
+        -------
+        (float, float, float)
+            expected return, volatility, Sharpe ratio.
         """
-        return base_optimizer.portfolio_performance(
+        return portfolio_performance(
             self.weights,
             self.expected_returns,
             self.cov_matrix,

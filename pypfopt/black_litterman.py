@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from . import base_optimizer
+from pypfopt.base import BaseOptimizer, portfolio_performance
 
 
 def market_implied_prior_returns(
@@ -28,18 +28,23 @@ def market_implied_prior_returns(
 
         \Pi = \delta \Sigma w_{mkt}
 
-    :param market_caps: market capitalisations of all assets
-    :type market_caps: {ticker: cap} dict or pd.Series
-    :param risk_aversion: risk aversion parameter
-    :type risk_aversion: positive float
-    :param cov_matrix: covariance matrix of asset returns
-    :type cov_matrix: pd.DataFrame
-    :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0.
-                           You should use the appropriate time period, corresponding
-                           to the covariance matrix.
-    :type risk_free_rate: float, optional
-    :return: prior estimate of returns as implied by the market caps
-    :rtype: pd.Series
+    Parameters
+    ----------
+    market_caps : {ticker: cap} dict or pd.Series
+        market capitalisations of all assets
+    risk_aversion : positive float
+        risk aversion parameter
+    cov_matrix : pd.DataFrame
+        covariance matrix of asset returns
+    risk_free_rate : float, optional
+        risk-free rate of borrowing/lending, defaults to 0.0.
+        You should use the appropriate time period, corresponding
+        to the covariance matrix.
+
+    Returns
+    -------
+    pd.Series
+        prior estimate of returns as implied by the market caps
     """
     if not isinstance(cov_matrix, pd.DataFrame):
         warnings.warn(
@@ -63,16 +68,25 @@ def market_implied_risk_aversion(market_prices, frequency=252, risk_free_rate=0.
 
         \delta = \frac{R - R_f}{\sigma^2}
 
-    :param market_prices: the (daily) prices of the market portfolio, e.g SPY.
-    :type market_prices: pd.Series with DatetimeIndex.
-    :param frequency: number of time periods in a year, defaults to 252 (the number
-                      of trading days in a year)
-    :type frequency: int, optional
-    :param risk_free_rate: annualised risk-free rate of borrowing/lending, defaults to 0.0.
-    :type risk_free_rate: float, optional
-    :raises TypeError: if market_prices cannot be parsed
-    :return: market-implied risk aversion
-    :rtype: float
+    Parameters
+    ----------
+    market_prices : pd.Series with DatetimeIndex.
+        the (daily) prices of the market portfolio, e.g SPY.
+    frequency : int, optional
+        number of time periods in a year, defaults to 252 (the number
+        of trading days in a year)
+    risk_free_rate : float, optional
+        annualised risk-free rate of borrowing/lending, defaults to 0.0.
+
+    Raises
+    ------
+    TypeError
+        if market_prices cannot be parsed
+
+    Returns
+    -------
+    float
+        market-implied risk aversion
     """
     if not isinstance(market_prices, (pd.Series, pd.DataFrame)):
         raise TypeError("Please format market_prices as a pd.Series")
@@ -83,7 +97,7 @@ def market_implied_risk_aversion(market_prices, frequency=252, risk_free_rate=0.
     return (r - risk_free_rate) / var
 
 
-class BlackLittermanModel(base_optimizer.BaseOptimizer):
+class BlackLittermanModel(BaseOptimizer):
     """
     A BlackLittermanModel object (inheriting from BaseOptimizer) contains requires
     a specific input format, specifying the prior, the views, the uncertainty in views,
@@ -138,36 +152,38 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         **kwargs,
     ):
         """
-        :param cov_matrix: NxN covariance matrix of returns
-        :type cov_matrix: pd.DataFrame or np.ndarray
-        :param pi: Nx1 prior estimate of returns, defaults to None.
-                   If pi="market", calculate a market-implied prior (requires market_caps
-                   to be passed).
-                   If pi="equal", use an equal-weighted prior.
-        :type pi: np.ndarray, pd.Series, optional
-        :param absolute_views: a collection of K absolute views on a subset of assets,
-                               defaults to None. If this is provided, we do not need P, Q.
-        :type absolute_views: pd.Series or dict, optional
-        :param Q: Kx1 views vector, defaults to None
-        :type Q: np.ndarray or pd.DataFrame, optional
-        :param P: KxN picking matrix, defaults to None
-        :type P: np.ndarray or pd.DataFrame, optional
-        :param omega: KxK view uncertainty matrix (diagonal), defaults to None
-                      Can instead pass "idzorek" to use Idzorek's method (requires
-                      you to pass view_confidences). If omega="default" or None,
-                      we set the uncertainty proportional to the variance.
-        :type omega: np.ndarray or Pd.DataFrame, or string, optional
-        :param view_confidences: Kx1 vector of percentage view confidences (between 0 and 1),
-                                required to compute omega via Idzorek's method.
-        :type view_confidences: np.ndarray, pd.Series, list, optional
-        :param tau: the weight-on-views scalar (default is 0.05)
-        :type tau: float, optional
-        :param risk_aversion: risk aversion parameter, defaults to 1
-        :type risk_aversion: positive float, optional
-        :param market_caps: (kwarg) market caps for the assets, required if pi="market"
-        :type market_caps: np.ndarray, pd.Series, optional
-        :param risk_free_rate: (kwarg) risk_free_rate is needed in some methods
-        :type risk_free_rate: float, defaults to 0.0
+        Parameters
+        ----------
+        cov_matrix : pd.DataFrame or np.ndarray
+            NxN covariance matrix of returns
+        pi : np.ndarray or pd.Series, optional
+            Nx1 prior estimate of returns, defaults to None.
+            If pi="market", calculate a market-implied prior (requires market_caps
+            to be passed).
+            If pi="equal", use an equal-weighted prior.
+        absolute_views : pd.Series or dict, optional
+            a collection of K absolute views on a subset of assets,
+            defaults to None. If this is provided, we do not need P, Q.
+        Q : np.ndarray or pd.DataFrame, optional
+            Kx1 views vector, defaults to None
+        P : np.ndarray or pd.DataFrame, optional
+            KxN picking matrix, defaults to None
+        omega : np.ndarray or pd.DataFrame, or string, optional
+            KxK view uncertainty matrix (diagonal), defaults to None
+            Can instead pass "idzorek" to use Idzorek's method (requires
+            you to pass view_confidences). If omega="default" or None,
+            we set the uncertainty proportional to the variance.
+        view_confidences : np.ndarray, pd.Series, list, optional
+            Kx1 vector of percentage view confidences (between 0 and 1),
+            required to compute omega via Idzorek's method.
+        tau : float, optional
+            the weight-on-views scalar (default is 0.05)
+        risk_aversion : positive float, optional
+            risk aversion parameter, defaults to 1
+        market_caps : np.ndarray or pd.Series, optional
+            (kwarg) market caps for the assets, required if pi="market"
+        risk_free_rate : float, optional
+            (kwarg) risk_free_rate is needed in some methods. Defaults to 0.0.
         """
         if sys.version_info[1] == 5:  # pragma: no cover
             warnings.warn(
@@ -213,8 +229,10 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
 
         {"AAPL": 0.20, "GOOG": 0.12, "XOM": -0.30}
 
-        :param absolute_views: absolute views on asset performances
-        :type absolute_views: dict, pd.Series
+        Parameters
+        ----------
+        absolute_views : dict or pd.Series
+            absolute views on asset performances
         """
         if not isinstance(absolute_views, (dict, pd.Series)):
             raise TypeError("views should be a dict or pd.Series")
@@ -333,7 +351,10 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         Helper method to ensure that all of the attributes created by the initialiser
         have the correct dimensions, to avoid linear algebra errors later on.
 
-        :raises ValueError: if there are incorrect dimensions.
+        Raises
+        ------
+        ValueError
+            if there are incorrect dimensions.
         """
         N = self.n_assets
         K = len(self.Q)
@@ -348,8 +369,10 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         He and Litterman (1999), such that the ratio omega/tau is proportional to the
         variance of the view portfolio.
 
-        :return: KxK diagonal uncertainty matrix
-        :rtype: np.ndarray
+        Returns
+        -------
+        np.ndarray
+            KxK diagonal uncertainty matrix
         """
         return np.diag(np.diag(tau * P @ cov_matrix @ P.T))
 
@@ -360,11 +383,16 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         percentage confidences. We use the closed-form solution described by
         Jay Walters in The Black-Litterman Model in Detail (2014).
 
-        :param view_confidences: Kx1 vector of percentage view confidences (between 0 and 1),
-                                required to compute omega via Idzorek's method.
-        :type view_confidences: np.ndarray, pd.Series, list,, optional
-        :return: KxK diagonal uncertainty matrix
-        :rtype: np.ndarray
+        Parameters
+        ----------
+        view_confidences : np.ndarray, pd.Series, or list, optional
+            Kx1 vector of percentage view confidences (between 0 and 1),
+            required to compute omega via Idzorek's method.
+
+        Returns
+        -------
+        np.ndarray
+            KxK diagonal uncertainty matrix
         """
         view_omegas = []
         for view_idx in range(len(Q)):
@@ -391,8 +419,10 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         Calculate the posterior estimate of the returns vector,
         given views on some assets.
 
-        :return: posterior returns vector
-        :rtype: pd.Series
+        Returns
+        -------
+        pd.Series
+            posterior returns vector
         """
 
         if self._tau_sigma_P is None:
@@ -419,8 +449,10 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         It is assumed that omega is diagonal. If this is not the case,
         please manually set omega_inv.
 
-        :return: posterior covariance matrix
-        :rtype: pd.DataFrame
+        Returns
+        -------
+        pd.DataFrame
+            posterior covariance matrix
         """
         if self._tau_sigma_P is None:
             self._tau_sigma_P = self.tau * self.cov_matrix @ self.P.T
@@ -450,10 +482,15 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
 
             w = (\delta \Sigma)^{-1} E(R)
 
-        :param risk_aversion: risk aversion parameter, defaults to 1
-        :type risk_aversion: positive float, optional
-        :return: asset weights implied by returns
-        :rtype: OrderedDict
+        Parameters
+        ----------
+        risk_aversion : positive float, optional
+            risk aversion parameter, defaults to 1
+
+        Returns
+        -------
+        OrderedDict
+            asset weights implied by returns
         """
         if risk_aversion is None:
             risk_aversion = self.risk_aversion
@@ -484,19 +521,28 @@ class BlackLittermanModel(base_optimizer.BaseOptimizer):
         portfolio. Currently calculates expected return, volatility, and the Sharpe ratio.
         This method uses the BL posterior returns and covariance matrix.
 
-        :param verbose: whether performance should be printed, defaults to False
-        :type verbose: bool, optional
-        :param risk_free_rate: risk-free rate of borrowing/lending, defaults to 0.0.
-                               The period of the risk-free rate should correspond to the
-                               frequency of expected returns.
-        :type risk_free_rate: float, optional
-        :raises ValueError: if weights have not been calculated yet
-        :return: expected return, volatility, Sharpe ratio.
-        :rtype: (float, float, float)
+        Parameters
+        ----------
+        verbose : bool, optional
+            whether performance should be printed, defaults to False
+        risk_free_rate : float, optional
+            risk-free rate of borrowing/lending, defaults to 0.0.
+            The period of the risk-free rate should correspond to the
+            frequency of expected returns.
+
+        Raises
+        ------
+        ValueError
+            if weights have not been calculated yet
+
+        Returns
+        -------
+        (float, float, float)
+            expected return, volatility, Sharpe ratio.
         """
         if self.posterior_cov is None:
             self.posterior_cov = self.bl_cov()
-        return base_optimizer.portfolio_performance(
+        return portfolio_performance(
             self.weights,
             self.posterior_rets,
             self.posterior_cov,

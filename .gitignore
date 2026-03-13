@@ -52,3 +52,6 @@ artifacts
 uv.lock
 
 bin
+
+# uv
+uv.lock

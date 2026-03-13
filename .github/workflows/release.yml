@@ -1,4 +1,4 @@
-name: PyPI Release
+name: Build wheels and publish to PyPI
 
 on:
   release:
@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - shell: bash
         run: |
@@ -32,21 +32,24 @@ jobs:
           fi
 
   build_wheels:
+    needs: check_tag
     name: Build wheels
     runs-on: ubuntu-latest
-    needs: [check_tag]
 
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.11'
+          enable-cache: true
+          python-version: "3.11"
 
       - name: Build wheel
         run: |
-          python -m pip install build
-          python -m build --wheel --sdist --outdir wheelhouse
+          uv build --wheel --sdist --out-dir wheelhouse
+        env:
+          UV_SYSTEM_PYTHON: 1
 
       - name: Store wheels
         uses: actions/upload-artifact@v7
@@ -54,50 +57,52 @@ jobs:
           name: wheels
           path: wheelhouse/*
 
-  pytest-nosoftdeps:
-    name: no-softdeps
+  test_wheels:
+    needs: build_wheels
+    name: Test wheels on ${{ matrix.os }} with ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
-    needs: [build_wheels]
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Setup macOS
-        if: runner.os == 'macOS'
-        run: |
-          brew install libomp  # https://github.com/pytorch/pytorch/issues/20030
+      - uses: actions/download-artifact@v8
+        with:
+          name: wheels
+          path: wheelhouse
 
-      - name: Get full Python version
-        id: full-python-version
-        shell: bash
-        run: echo version=$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info))") >> $GITHUB_OUTPUT
+      - name: Display downloaded artifacts
+        run: ls -l wheelhouse
 
-      - name: Install dependencies
-        shell: bash
-        run: |
-          pip install ".[dev]"
+      - name: Get wheel filename (Unix)
+        if: runner.os != 'Windows'
+        run: echo "WHEELNAME=$(ls ./wheelhouse/pyportfolioopt-*none-any.whl)" >> $GITHUB_ENV
+
+      - name: Get wheel filename (Windows)
+        if: runner.os == 'Windows'
+        run: echo "WHEELNAME=$(ls ./wheelhouse/pyportfolioopt-*none-any.whl)" >> $env:GITHUB_ENV
+
+      - name: Install wheel and extras
+        run: python3 -m pip install "${{ env.WHEELNAME }}[all_extras, dev]"
 
       - name: Show dependencies
         run: python -m pip list
 
-      - name: Run pytest
-        shell: bash
+      - name: Run tests
         run: python -m pytest tests
 
   upload_wheels:
     name: Upload wheels to PyPI
     runs-on: ubuntu-latest
-    needs: [pytest-nosoftdeps]
+    needs: [build_wheels, test_wheels]
 
     permissions:
       id-token: write

@@ -1,4 +1,4 @@
-"""Exports for _base_optimizer.py, for downwards compatibility."""
+"""Base classes."""
 
 from pypfopt.base._base_optimizer import (
     BaseConvexOptimizer,

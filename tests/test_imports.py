@@ -1,6 +1,8 @@
+from pypfopt.base import BaseConvexOptimizer, BaseOptimizer, portfolio_performance
+
+
 def test_import_modules():
     from pypfopt import (
-        base_optimizer,
         black_litterman,
         cla,
         discrete_allocation,

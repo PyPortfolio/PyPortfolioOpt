@@ -10,6 +10,7 @@ authors = [
     { name = "Robert Andrew Martin", email = "martin.robertandrew@gmail.com" },
 ]
 readme = "README.md"
+requires-python = ">=3.10,<3.15"
 keywords= ["finance", "portfolio", "optimization", "quant", "investing"]
 classifiers=[
     "Development Status :: 4 - Beta",
@@ -60,9 +61,8 @@ all_extras = [
 
 # dev - the developer dependency set, for contributors and CI
 dev = [
-    "pytest>=9.0.0",
-    "pytest-cov>=7.0.0",
-    "yfinance>=0.2.66",
+    "pytest>=9.0.2",
+    "yfinance>=1.2.0",
 ]
 
 # notebook tests
@@ -70,6 +70,12 @@ notebook_test = [
     "nbmake",
     "pytest-rerunfailures",
 ]
+
+cov = [
+    "coverage>=7.13.4",
+    "pytest-cov>=7.0.0",
+]
+
 
 [project.urls]
 Documentation = "https://pyportfolioopt.readthedocs.io/en/latest/"

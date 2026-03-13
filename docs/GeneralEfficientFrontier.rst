@@ -203,7 +203,7 @@ For example, perhaps our objective is to construct a basket of assets that best 
 particular index, in other words, to minimise the **tracking error**. This does not fit within
 a mean-variance optimization paradigm, but we can still implement it in PyPortfolioOpt::
 
-    from pypfopt.base_optimizer import BaseConvexOptimizer
+    from pypfopt.base import BaseConvexOptimizer
     from pypfopt.objective_functions import ex_post_tracking_error
 
     historic_rets = ... # dataframe of historic asset returns
@@ -231,7 +231,7 @@ or a ``nonconvex_objective``, which uses ``scipy.optimize`` as the backend and t
 different API. For more examples, check out this `cookbook recipe
 <https://github.com/PyPortfolio/PyPortfolioOpt/blob/main/cookbook/3-Advanced-Mean-Variance-Optimization.ipynb>`_.
 
-    .. class:: pypfopt.base_optimizer.BaseConvexOptimizer
+    .. class:: pypfopt.base.BaseConvexOptimizer
 
         .. automethod:: convex_objective
 

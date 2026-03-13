@@ -9,7 +9,7 @@ from pypfopt import (
     objective_functions,
     risk_models,
 )
-from pypfopt.base_optimizer import BaseConvexOptimizer
+from pypfopt.base import BaseConvexOptimizer
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
 
