@@ -48,9 +48,6 @@ dist
 
 artifacts
 
-# uv lock file
-uv.lock
-
 bin
 
 # uv

@@ -37,8 +37,8 @@ Sharpe Ratio: 1.09
 
 # Black-Litterman
 spy_prices = pd.read_csv(
-    "tests/resources/spy_prices.csv", parse_dates=True, index_col=0
-).squeeze()
+    "tests/resources/spy_prices.csv", parse_dates=True, index_col=0, squeeze=True
+)
 delta = black_litterman.market_implied_risk_aversion(spy_prices)
 
 mcaps = {
@@ -116,7 +116,7 @@ hrp = HRPOpt(returns)
 weights = hrp.optimize()
 hrp.portfolio_performance(verbose=True)
 print(weights)
-plotting.plot_dendrogram(hrp, showfig=False)  # Use showfig=True to display plot
+plotting.plot_dendrogram(hrp)  # to plot dendrogram
 
 """
 Expected annual return: 10.8%
@@ -146,13 +146,11 @@ Sharpe Ratio: 0.66
 """
 
 
-# Critical Line Algorithm (CLA)
-cla = CLA(mu, S, use_cvxcla=False)  # Use use_cvxcla=True for faster performance
+# Crticial Line Algorithm
+cla = CLA(mu, S)
 print(cla.max_sharpe())
 cla.portfolio_performance(verbose=True)
-plotting.plot_efficient_frontier(
-    cla, interactive=True, showfig=False
-)  # Use showfig=True to open browser for interactive plot
+plotting.plot_efficient_frontier(cla)  # to plot
 
 """
 {'GOOG': 0.020889868669945022,
