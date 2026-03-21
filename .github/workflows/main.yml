@@ -1,13 +1,12 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
-name: pytest
+name: Test
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   pull_request:
-    branches: ["main"]
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,22 +14,23 @@ concurrency:
 
 jobs:
   code-quality:
+    name: code-quality
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v6
+      - name: repository checkout step
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.14'
+          enable-cache: true
+          python-version: "3.14"
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: install pre-commit
-        run: python3 -m pip install pre-commit
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
+        run: uv pip install pre-commit
 
       - name: Get changed files
         id: changed-files
@@ -40,7 +40,7 @@ jobs:
 
       - name: Print changed files
         run: |
-          echo "Changed files: $CHANGED_FILES"
+          echo "Changed files:" && echo "$CHANGED_FILES" | tr ' ' '\n'
 
       - name: Run pre-commit on changed files
         run: |
@@ -50,17 +50,15 @@ jobs:
             echo "No changed files to check."
           fi
 
-  pytest-nosoftdeps:
+  test-nosoftdeps:
     needs: code-quality
     name: nosoftdeps (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    env:
-      MPLBACKEND: Agg # https://github.com/orgs/community/discussions/26434
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-      fail-fast: false  # to not fail all combinations if just one fails
 
     steps:
       - uses: actions/checkout@v6
@@ -69,39 +67,40 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
-        with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
 
+      - name: Force non-GUI Matplotlib backend (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: echo "MPLBACKEND=Agg" >> $env:GITHUB_ENV
+
       - name: Install dependencies
         shell: bash
-        run: uv pip install ".[dev]" --no-cache-dir
-        env:
-          UV_SYSTEM_PYTHON: 1
+        run: uv pip install ".[dev]" --no-cache
 
       - name: Show dependencies
         run: uv pip list
 
-      - name: Test with pytest
-        run: |
-          pytest ./tests
+      - name: Run tests
+        run: uv run pytest ./tests
 
-  pytest:
-    needs: pytest-nosoftdeps
-    name: (${{ matrix.python-version }}, ${{ matrix.os }})
+  test-full:
+    needs: test-nosoftdeps
+    name: allsoftdeps (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       MPLBACKEND: Agg # https://github.com/orgs/community/discussions/26434
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
-      fail-fast: false  # to not fail all combinations if just one fails
 
     steps:
       - uses: actions/checkout@v6
@@ -110,39 +109,36 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
-        with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
 
+      - name: Force non-GUI Matplotlib backend (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: echo "MPLBACKEND=Agg" >> $env:GITHUB_ENV
+
       - name: Install dependencies
         shell: bash
-        run: uv pip install ".[dev,all_extras]" --no-cache-dir
-        env:
-          UV_SYSTEM_PYTHON: 1
+        run: uv pip install -e ".[all_extras, dev]" --no-cache
 
       - name: Show dependencies
         run: uv pip list
 
-      - name: Test with pytest
-        run: |
-          pytest ./tests
+      - name: Run tests
+        run: uv run pytest ./tests
 
+  # TODO: should we run this as a substep of test-no-deps and only upload for a specific version?
   codecov:
-    name: coverage (${{ matrix.python-version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: coverage
     needs: code-quality
+    runs-on: "ubuntu-latest"
     env:
       MPLBACKEND: Agg # https://github.com/orgs/community/discussions/26434
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.12"]
-
     steps:
       - uses: actions/checkout@v6
 
@@ -150,28 +146,29 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+          python-version: 3.12
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Create virtual environment
+        run: uv venv
 
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
 
+      - name: Force non-GUI Matplotlib backend (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: pwsh
+        run: echo "MPLBACKEND=Agg" >> $env:GITHUB_ENV
+
       - name: Install dependencies
         shell: bash
-        run: uv pip install ".[dev,all_extras]" --no-cache-dir
-        env:
-          UV_SYSTEM_PYTHON: 1
+        run: uv pip install ".[dev,cov]"
 
       - name: Show dependencies
         run: uv pip list
 
       - name: Generate coverage report
         run: |
-          pip install pytest pytest-cov
-          pytest --cov=./ --cov-report=xml
+          uv run pytest --cov=./ --cov-report=xml
 
       - name: Upload coverage to Codecov
         # if false in order to skip for now
@@ -181,50 +178,73 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: true
 
-  notebooks:
+  detect-notebooks-change:
     needs: code-quality
+    name: detect change affecting notebooks
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      notebooks: ${{ steps.check.outputs.notebooks }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch main branch
+        run: git fetch origin main
+
+      - name: Check if cookbook, pypfopt or pyproject.toml changed
+        id: check
+        run: |
+          if git diff --quiet origin/main -- cookbook/ pypfopt/ pyproject.toml; then
+            echo "No notebook related changes"
+            echo "notebooks=false" >> $GITHUB_OUTPUT
+          else
+            echo "Detected changes in notebooks or pypfopt"
+            echo "notebooks=true" >> $GITHUB_OUTPUT
+          fi
+
+  run-notebook-examples:
+    needs: detect-notebooks-change
+    if: ${{ needs.detect-notebooks-change.outputs.notebooks == 'true' }}
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: [ '3.10', '3.11', '3.12', '3.13', '3.14' ]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v7
-      with:
-        enable-cache: true
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
 
-    - name: Display Python version
-      run: python -c "import sys; print(sys.version)"
+      - name: Create virtual environment
+        run: uv venv
 
-    - name: Install dependencies
-      shell: bash
-      run: uv pip install ".[dev,all_extras,notebook_test]" --no-cache-dir
-      env:
-        UV_SYSTEM_PYTHON: 1
+      - name: Install dependencies
+        shell: bash
+        run: uv pip install ".[dev,all_extras,notebook_test]" --no-cache
 
-    - name: Show dependencies
-      run: uv pip list
+      - name: Show dependencies
+        run: uv pip list
 
-    # Discover all notebooks
-    - name: Collect notebooks
-      id: notebooks
-      shell: bash
-      run: |
-        NOTEBOOKS=$(find cookbook -name '*.ipynb' -print0 | xargs -0 echo)
-        echo "notebooks=$NOTEBOOKS" >> $GITHUB_OUTPUT
+      - name: Collect notebooks
+        id: notebooks
+        shell: bash
+        run: |
+          NOTEBOOKS=$(find cookbook -name '*.ipynb' -print0 | xargs -0 echo)
+          echo "notebooks=$NOTEBOOKS" >> $GITHUB_OUTPUT
 
-    # Run all discovered notebooks with nbmake
-    - name: Test notebooks
-      shell: bash
-      run: |
-        uv run pytest --reruns 3 --nbmake --nbmake-timeout=3600 -vv ${{ steps.notebooks.outputs.notebooks }}
+      - name: Run notebooks
+        shell: bash
+        run: |
+          uv run pytest --reruns 3 --nbmake --nbmake-timeout=3600 -vv ${{ steps.notebooks.outputs.notebooks }}

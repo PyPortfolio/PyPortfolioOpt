@@ -608,7 +608,7 @@ def test_min_vol_pair_constraint():
     ef.min_volatility()
     old_sum = ef.weights[:2].sum()
     ef = setup_efficient_frontier()
-    ef.add_constraint(lambda w: (w[1] + w[0] <= old_sum / 2))
+    ef.add_constraint(lambda w: w[1] + w[0] <= old_sum / 2)
     ef.min_volatility()
     new_sum = ef.weights[:2].sum()
     assert new_sum <= old_sum / 2 + 1e-4
@@ -620,7 +620,7 @@ def test_max_sharpe_pair_constraint():
     old_sum = ef.weights[:2].sum()
 
     ef = setup_efficient_frontier()
-    ef.add_constraint(lambda w: (w[1] + w[0] <= old_sum / 2))
+    ef.add_constraint(lambda w: w[1] + w[0] <= old_sum / 2)
     ef.max_sharpe(risk_free_rate=0.02)
     new_sum = ef.weights[:2].sum()
     assert new_sum <= old_sum / 2 + 1e-4

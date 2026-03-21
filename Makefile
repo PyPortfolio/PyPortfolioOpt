@@ -22,6 +22,7 @@ RESET := \033[0m
 
 UV_INSTALL_DIR := ./bin
 
+# TODO: I don't think we should install uv locally inside the repository, but rather rely on the user having it installed globally. This is because uv is a tool that is meant to be used across multiple projects, and installing it locally in each project can lead to version conflicts and unnecessary duplication. Instead, we can specify in the documentation that users should have uv installed globally, and provide instructions on how to do so if they don't already have it
 ##@ Bootstrap
 install-uv: ## ensure uv (and uvx) are installed locally
 	@mkdir -p ${UV_INSTALL_DIR}
