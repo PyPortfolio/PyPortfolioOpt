@@ -104,6 +104,25 @@ def test_sample_cov_npd():
             risk_models.fix_nonpositive_semidefinite(S, fix_method="blah")
 
 
+def test_fix_psd_ill_conditioned_warning():
+    # PSD matrix with a very high condition number (ill-conditioned)
+    n = 3
+    matrix = np.eye(n)
+    matrix[0, 0] = 1e12
+    assert risk_models._is_positive_semidefinite(matrix)
+    assert np.linalg.cond(matrix) > 1e10
+
+    with pytest.warns(RuntimeWarning, match="ill-conditioned"):
+        result = risk_models.fix_nonpositive_semidefinite(matrix)
+        np.testing.assert_array_equal(result, matrix)
+
+    # Well-conditioned PSD matrix should NOT warn
+    good_matrix = np.eye(n)
+    assert risk_models._is_positive_semidefinite(good_matrix)
+    result = risk_models.fix_nonpositive_semidefinite(good_matrix)
+    np.testing.assert_array_equal(result, good_matrix)
+
+
 def test_fix_npd_different_method():
     df = get_data()
     S = risk_models.sample_cov(df)
