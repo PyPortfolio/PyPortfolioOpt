@@ -5,6 +5,7 @@ def test_import_modules():
     from pypfopt import (
         black_litterman,
         cla,
+        data,
         discrete_allocation,
         exceptions,
         expected_returns,
@@ -22,6 +23,11 @@ def test_explicit_import():
         market_implied_risk_aversion,
     )
     from pypfopt.cla import CLA
+    from pypfopt.data import (
+        load_example_market_caps,
+        load_example_prices,
+        load_spy_prices,
+    )
     from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
     from pypfopt.efficient_frontier import (
         EfficientCVaR,
