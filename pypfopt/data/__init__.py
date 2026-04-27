@@ -1,9 +1,10 @@
-import json
 from importlib.resources import files
+import json
 
 import pandas as pd
 
 __all__ = [
+    "load_cookbook_prices",
     "load_example_market_caps",
     "load_example_prices",
     "load_spy_prices",
@@ -18,6 +19,10 @@ def _load_csv(filename: str) -> pd.DataFrame:
 
 def load_example_prices() -> pd.DataFrame:
     return _load_csv("stock_prices.csv")
+
+
+def load_cookbook_prices() -> pd.DataFrame:
+    return _load_csv("yfinance_stock_prices.csv")
 
 
 def load_spy_prices() -> pd.DataFrame:

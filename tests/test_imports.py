@@ -24,6 +24,7 @@ def test_explicit_import():
     )
     from pypfopt.cla import CLA
     from pypfopt.data import (
+        load_cookbook_prices,
         load_example_market_caps,
         load_example_prices,
         load_spy_prices,
