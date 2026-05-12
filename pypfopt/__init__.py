@@ -9,6 +9,7 @@ from .efficient_frontier import (
     EfficientCDaR,
     EfficientCVaR,
     EfficientFrontier,
+    EfficientMVSK,
     EfficientSemivariance,
 )
 from .hierarchical_portfolio import HRPOpt
@@ -27,6 +28,7 @@ __all__ = [
     "EfficientSemivariance",
     "EfficientCVaR",
     "EfficientCDaR",
+    "EfficientMVSK",
     "HRPOpt",
     "CovarianceShrinkage",
 ]
