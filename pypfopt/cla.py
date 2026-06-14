@@ -4,6 +4,8 @@ generates optimal portfolios using the Critical Line Algorithm as implemented
 by Marcos Lopez de Prado and David Bailey.
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -61,6 +63,9 @@ class CLA(BaseOptimizer):
         weight_bounds : tuple (float, float) or (list/ndarray, list/ndarray) or list(tuple(float, float))
             minimum and maximum weight of an asset, defaults to (0, 1).
             Must be changed to (-1, 1) for portfolios with shorting.
+        use_cvxcla : bool, optional
+            whether to use the ``cvxcla`` library as a high-performance backend,
+            defaults to False. Requires ``cvxcla`` to be installed
 
         Raises
         ------
@@ -69,81 +74,12 @@ class CLA(BaseOptimizer):
         TypeError
             if ``cov_matrix`` is not a dataframe or array
         """
-        # Store backend choice
-        self.use_cvxcla = use_cvxcla
-
-        # Setup cvxcla backend if requested
-        if use_cvxcla:
-            try:
-                from cvxcla import CLA as CVXCLAEngine
-
-                # Convert to cvxcla format
-                self.mean = np.asarray(expected_returns).flatten()
-                self.expected_returns = self.mean  # For backward compatibility
-                n_assets = len(self.mean)
-
-                # Handle weight bounds
-                if len(weight_bounds) == len(self.mean) and not isinstance(
-                    weight_bounds[0], (float, int)
-                ):
-                    self.lower_bounds = np.array([b[0] for b in weight_bounds])
-                    self.upper_bounds = np.array([b[1] for b in weight_bounds])
-                else:
-                    self.lower_bounds = np.full(n_assets, weight_bounds[0])
-                    self.upper_bounds = np.full(n_assets, weight_bounds[1])
-
-                # Store cvxcla initialization parameters BEFORE setting cov_matrix property
-                self._cvxcla_mean = self.mean
-                self._cvxcla_bounds = (self.lower_bounds, self.upper_bounds)
-                self._cvxcla_cov_matrix = np.asarray(
-                    cov_matrix
-                )  # Direct assignment to avoid property setter during init
-                self.n_assets = n_assets  # Set n_assets before creating engine
-
-                # Create cvxcla engine
-                self._cvxcla_engine = CVXCLAEngine(
-                    mean=self.mean,
-                    covariance=self._cvxcla_cov_matrix,
-                    lower_bounds=self.lower_bounds,
-                    upper_bounds=self.upper_bounds,
-                    a=np.ones((1, n_assets)),  # Fully invested constraint
-                    b=np.ones(1),
-                )
-
-                # Store ticker mapping for backward compatibility
-                if hasattr(expected_returns, "index"):
-                    self.tickers = list(expected_returns.index)
-                else:
-                    self.tickers = list(range(n_assets))
-
-                # Set n_assets for backward compatibility
-                self.n_assets = n_assets
-
-                # Add frontier_values for plotting compatibility
-                self.frontier_values = None
-
-                # Initialize parent class
-                super().__init__(n_assets, self.tickers)
-                return  # Skip the original initialization
-
-            except ImportError:
-                import warnings
-
-                warnings.warn(
-                    "cvxcla not available, falling back to standard implementation. "
-                    "Install with: pip install cvxcla",
-                    RuntimeWarning,
-                )
-                self.use_cvxcla = False
-
-        # Original initialization code
+        # Initialize the class
         self.mean = np.array(expected_returns).reshape((len(expected_returns), 1))
         # if (self.mean == np.ones(self.mean.shape) * self.mean.mean()).all():
         #     self.mean[-1, 0] += 1e-5
         self.expected_returns = self.mean.reshape((len(self.mean),))
-        self._cov_matrix = np.asarray(
-            cov_matrix
-        )  # Use _cov_matrix for original implementation
+        self.cov_matrix = np.asarray(cov_matrix)
 
         # Bounds
         if len(weight_bounds) == len(self.mean) and not isinstance(
@@ -174,37 +110,30 @@ class CLA(BaseOptimizer):
             tickers = list(range(len(self.mean)))
         super().__init__(len(tickers), tickers)
 
-    def _recreate_cvxcla_engine(self):
-        """Recreate cvxcla engine when parameters change (e.g., covariance matrix)."""
-        if (
-            self.use_cvxcla
-            and hasattr(self, "_cvxcla_mean")
-            and hasattr(self, "_cvxcla_bounds")
-        ):
-            from cvxcla import CLA as CVXCLAEngine
+        # Optional cvxcla backend
+        self.use_cvxcla = False
+        self._cvxcla_engine = None
+        if use_cvxcla:
+            try:
+                from cvxcla import CLA as _CVXCLAEngine
 
-            self._cvxcla_engine = CVXCLAEngine(
-                mean=self._cvxcla_mean,
-                covariance=self._cvxcla_cov_matrix,
-                lower_bounds=self._cvxcla_bounds[0],
-                upper_bounds=self._cvxcla_bounds[1],
-                a=np.ones((1, self.n_assets)),  # Fully invested constraint
-                b=np.ones(1),
-            )
-
-    @property
-    def cov_matrix(self):
-        """Get the covariance matrix."""
-        return self._cvxcla_cov_matrix if self.use_cvxcla else self._cov_matrix
-
-    @cov_matrix.setter
-    def cov_matrix(self, new_cov_matrix):
-        """Set the covariance matrix and update cvxcla engine if needed."""
-        if self.use_cvxcla:
-            self._cvxcla_cov_matrix = np.asarray(new_cov_matrix)
-            self._recreate_cvxcla_engine()
-        else:
-            self._cov_matrix = new_cov_matrix
+                n = self.n_assets
+                self._cvxcla_engine = _CVXCLAEngine(
+                    mean=self.expected_returns,
+                    covariance=self.cov_matrix,
+                    lower_bounds=self.lB.flatten(),
+                    upper_bounds=self.uB.flatten(),
+                    a=np.ones((1, n)),
+                    b=np.ones(1),
+                )
+                self.use_cvxcla = True
+            except ImportError:
+                warnings.warn(
+                    "cvxcla is not installed – falling back to the standard CLA "
+                    "implementation. Install it with: pip install cvxcla",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
     @staticmethod
     def _infnone(x):
@@ -253,16 +182,16 @@ class CLA(BaseOptimizer):
         g1 = np.dot(np.dot(onesF.T, covarF_inv), meanF)
         g2 = np.dot(np.dot(onesF.T, covarF_inv), onesF)
         if wB is None:
-            g_result = -self.ls[-1] * g1 / g2 + 1 / g2
-            g, w1 = float(g_result.item() if hasattr(g_result, "item") else g_result), 0
+            g = -self.ls[-1] * g1 / g2 + 1 / g2
+            w1 = 0
         else:
             onesB = np.ones(wB.shape)
             g3 = np.dot(onesB.T, wB)
             g4 = np.dot(covarF_inv, covarFB)
             w1 = np.dot(g4, wB)
             g4 = np.dot(onesF.T, w1)
-            g_result = -self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2
-            g = float(g_result.item() if hasattr(g_result, "item") else g_result)
+            g = -self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2
+        g = float(g.item() if hasattr(g, "item") else g)
         # 2) compute weights
         w2 = np.dot(covarF_inv, onesF)
         w3 = np.dot(covarF_inv, meanF)
@@ -284,16 +213,16 @@ class CLA(BaseOptimizer):
         # 3) Lambda
         if wB is None:
             # All free assets
-            result = (c4[i] - c1 * bi) / c
-            return float(result.item() if hasattr(result, "item") else result), bi
+            res = (c4[i] - c1 * bi) / c
         else:
             onesB = np.ones(wB.shape)
             l1 = np.dot(onesB.T, wB)
             l2 = np.dot(covarF_inv, covarFB)
             l3 = np.dot(l2, wB)
             l2 = np.dot(onesF.T, l3)
-            result = ((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c
-            return float(result.item() if hasattr(result, "item") else result), bi
+            res = ((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c
+        res = float(res.item() if hasattr(res, "item") else res)
+        return res, bi
 
     def _get_matrices(self, f):
         # Slice covarF,covarFB,covarB,meanF,meanB,wF,wB
@@ -509,14 +438,11 @@ class CLA(BaseOptimizer):
         OrderedDict
             asset weights for the max-sharpe portfolio
         """
-        # Use cvxcla backend if enabled
         if self.use_cvxcla:
             _, weights = self._cvxcla_engine.frontier.max_sharpe
-            self.weights = weights
-            # Convert to OrderedDict with tickers
-            return dict(zip(self.tickers, weights))
+            self.weights = np.asarray(weights, dtype=float)
+            return self._make_output_weights()
 
-        # Original implementation
         if not self.w:
             self._solve()
         # 1) Compute the local max SR portfolio between any two neighbor turning points
@@ -541,15 +467,12 @@ class CLA(BaseOptimizer):
         OrderedDict
             asset weights for the volatility-minimising portfolio
         """
-        # Use cvxcla backend if enabled
         if self.use_cvxcla:
-            # Last point on efficient frontier = minimum variance portfolio
+            # Last turning point on the frontier is the minimum variance portfolio
             weights = self._cvxcla_engine.frontier.weights[-1]
-            self.weights = weights
-            # Convert to OrderedDict with tickers
-            return dict(zip(self.tickers, weights))
+            self.weights = np.asarray(weights, dtype=float)
+            return self._make_output_weights()
 
-        # Original implementation
         if not self.w:
             self._solve()
         var = []
@@ -579,16 +502,14 @@ class CLA(BaseOptimizer):
         (float list, float list, np.ndarray list)
             return list, std list, weight list
         """
-        # Use cvxcla backend if enabled
         if self.use_cvxcla:
             frontier = self._cvxcla_engine.frontier.interpolate(points)
-            mu = frontier.returns.tolist()
-            sigma = frontier.volatility.tolist()
-            weights = [w for w in frontier.weights]
+            mu = list(frontier.returns)
+            sigma = list(frontier.volatility)
+            weights = [np.asarray(w, dtype=float) for w in frontier.weights]
             self.frontier_values = (mu, sigma, weights)
             return mu, sigma, weights
 
-        # Original implementation
         if not self.w:
             self._solve()
 

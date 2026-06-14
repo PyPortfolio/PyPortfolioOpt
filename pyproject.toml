@@ -57,6 +57,7 @@ all_extras = [
     "ecos>=2.0.14,<2.1",
     "plotly>=5.0.0,<7",
     "cvxopt; python_version < '3.14'",
+    "cvxcla>=1.6.2; python_version >= '3.11'",
 ]
 
 # dev - the developer dependency set, for contributors and CI
