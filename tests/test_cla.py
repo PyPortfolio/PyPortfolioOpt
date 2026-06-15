@@ -155,13 +155,18 @@ def test_cla_efficient_frontier():
 def test_cla_cvxcla_fallback_warning():
     """cvxcla unavailable → RuntimeWarning, falls back to standard backend."""
     import sys
-    import unittest.mock as mock
 
-    # Simulate cvxcla not being installed
-    with mock.patch.dict(sys.modules, {"cvxcla": None}):
+    original = sys.modules.get("cvxcla")
+    sys.modules["cvxcla"] = None
+    try:
         with pytest.warns(RuntimeWarning, match="cvxcla is not installed"):
             cla = setup_cla(use_cvxcla=True)
         assert cla.use_cvxcla is False
+    finally:
+        if original is None:
+            sys.modules.pop("cvxcla", None)
+        else:
+            sys.modules["cvxcla"] = original
 
 
 def test_cla_cvxcla_max_sharpe():
