@@ -96,6 +96,16 @@ def test_cla_two_assets():
     assert CLA(mu, cov)
 
 
+def test_cla_singular_covariance_raises_clear_error():
+    mu = np.array([0.1, 0.2])
+    cov = np.array([[0.01, 0.01], [0.01, 0.01]])
+
+    cla = CLA(mu, cov)
+
+    with pytest.raises(ValueError, match="invertible covariance matrix"):
+        cla.max_sharpe()
+
+
 def test_cla_max_sharpe_semicovariance():
     df = get_data()
     cla = setup_cla()

@@ -192,6 +192,16 @@ class CLA(BaseOptimizer):
         res = float(res[0, 0])
         return res, bi
 
+    @staticmethod
+    def _invert(covarF):
+        try:
+            return np.linalg.inv(covarF)
+        except np.linalg.LinAlgError as e:
+            raise ValueError(
+                "CLA requires an invertible covariance matrix. "
+                "The supplied covariance matrix appears to be singular."
+            ) from e
+
     def _get_matrices(self, f):
         # Slice covarF,covarFB,covarB,meanF,meanB,wF,wB
         covarF = self._reduce_matrix(self.cov_matrix, f, f)
@@ -339,7 +349,7 @@ class CLA(BaseOptimizer):
             l_in = None
             if len(f) > 1:
                 covarF, covarFB, meanF, wB = self._get_matrices(f)
-                covarF_inv = np.linalg.inv(covarF)
+                covarF_inv = self._invert(covarF)
                 j = 0
                 for i in f:
                     lam, bi = self._compute_lambda(
@@ -354,7 +364,7 @@ class CLA(BaseOptimizer):
                 b = self._get_b(f)
                 for i in b:
                     covarF, covarFB, meanF, wB = self._get_matrices(f + [i])
-                    covarF_inv = np.linalg.inv(covarF)
+                    covarF_inv = self._invert(covarF)
                     lam, bi = self._compute_lambda(
                         covarF_inv,
                         covarFB,
@@ -371,7 +381,7 @@ class CLA(BaseOptimizer):
                 # 3) compute minimum variance solution
                 self.ls.append(0)
                 covarF, covarFB, meanF, wB = self._get_matrices(f)
-                covarF_inv = np.linalg.inv(covarF)
+                covarF_inv = self._invert(covarF)
                 meanF = np.zeros(meanF.shape)
             else:
                 # 4) decide lambda
@@ -383,7 +393,7 @@ class CLA(BaseOptimizer):
                     self.ls.append(l_out)
                     f.append(i_out)
                 covarF, covarFB, meanF, wB = self._get_matrices(f)
-                covarF_inv = np.linalg.inv(covarF)
+                covarF_inv = self._invert(covarF)
             # 5) compute solution vector
             wF, g = self._compute_w(covarF_inv, covarFB, meanF, wB)
             for i in range(len(f)):
