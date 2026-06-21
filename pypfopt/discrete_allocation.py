@@ -14,6 +14,19 @@ from skbase.utils.dependencies import _check_soft_dependencies
 from . import exceptions
 
 
+_MIP_SOLVER_PREFERENCE = (
+    "HIGHS",
+    "GLPK_MI",
+    "CBC",
+    "SCIP",
+    "GUROBI",
+    "CPLEX",
+    "XPRESS",
+    "COPT",
+    "MOSEK",
+)
+
+
 def get_latest_prices(prices):
     """
     A helper tool which retrieves the most recent asset prices from a dataframe of
@@ -115,6 +128,38 @@ class DiscreteAllocation:
         allocation : dict
         """
         return {k: v for k, v in allocation.items() if v != 0}
+
+    @staticmethod
+    def _choose_mip_solver(solver):
+        """
+        Select a mixed-integer solver for the LP allocation path.
+
+        If the caller specifies a solver explicitly, leave it unchanged. Otherwise,
+        preserve the legacy ECOS_BB preference when ecos is installed, and fall back
+        to another installed mixed-integer solver such as HiGHS.
+        """
+        if solver is not None:
+            return solver
+
+        if _check_soft_dependencies("ecos", severity="none"):
+            warn(
+                "The default solver for lp_portfolio will change from ECOS_BB to"
+                "None, the cvxpy default solver, in release 1.7.0."
+                "To continue using ECOS_BB as the solver, "
+                "please set solver='ECOS_BB' explicitly.",
+                FutureWarning,
+            )
+            return "ECOS_BB"
+
+        installed_solvers = set(cp.installed_solvers())
+        for candidate in _MIP_SOLVER_PREFERENCE:
+            if candidate in installed_solvers:
+                return candidate
+
+        raise exceptions.OptimizationError(
+            "Please install a mixed-integer solver such as HiGHS or ecos, "
+            "or pass a compatible solver explicitly."
+        )
 
     def _allocation_rmse_error(self, verbose=True):
         """
@@ -297,7 +342,8 @@ class DiscreteAllocation:
             print error analysis? Defaults to False.
         solver : str, optional
             the CVXPY solver to use (must support mixed-integer programs).
-            Defaults to "ECOS_BB" if ecos is installed, else None.
+            Defaults to "ECOS_BB" if ecos is installed, otherwise the first
+            installed mixed-integer solver supported by cvxpy.
 
         Returns
         -------
@@ -305,17 +351,7 @@ class DiscreteAllocation:
             the number of shares of each ticker that should be purchased, along with the amount
             of funds leftover.
         """
-        # todo 1.7.0: remove this defaulting behavior
-        if solver is None and _check_soft_dependencies("ecos", severity="none"):
-            solver = "ECOS_BB"
-            warn(
-                "The default solver for lp_portfolio will change from ECOS_BB to"
-                "None, the cvxpy default solver, in release 1.7.0."
-                "To continue using ECOS_BB as the solver, "
-                "please set solver='ECOS_BB' explicitly.",
-                FutureWarning,
-            )
-        # end todo
+        solver = self._choose_mip_solver(solver)
 
         if any([w < 0 for _, w in self.weights]):
             longs = {t: w for t, w in self.weights if w >= 0}

@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from pypfopt import exceptions
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
@@ -454,3 +455,30 @@ def test_allocation_errors():
     latest_prices.iloc[0] = np.nan
     with pytest.raises(TypeError):
         DiscreteAllocation(w, latest_prices)
+
+
+def test_choose_mip_solver_falls_back_to_highs(monkeypatch):
+    monkeypatch.setattr(
+        "pypfopt.discrete_allocation._check_soft_dependencies",
+        lambda *args, **kwargs: False,
+    )
+    monkeypatch.setattr(
+        "pypfopt.discrete_allocation.cp.installed_solvers",
+        lambda: ["OSQP", "HIGHS", "SCS"],
+    )
+
+    assert DiscreteAllocation._choose_mip_solver(None) == "HIGHS"
+
+
+def test_choose_mip_solver_requires_mip_backend(monkeypatch):
+    monkeypatch.setattr(
+        "pypfopt.discrete_allocation._check_soft_dependencies",
+        lambda *args, **kwargs: False,
+    )
+    monkeypatch.setattr(
+        "pypfopt.discrete_allocation.cp.installed_solvers",
+        lambda: ["OSQP", "SCS", "CLARABEL"],
+    )
+
+    with pytest.raises(exceptions.OptimizationError, match="mixed-integer solver"):
+        DiscreteAllocation._choose_mip_solver(None)
