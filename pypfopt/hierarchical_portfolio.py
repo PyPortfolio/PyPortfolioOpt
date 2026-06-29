@@ -252,9 +252,11 @@ def _erc_weights_ccd(cov: np.ndarray, tol: float = 1e-12, max_iter: int = 500) -
     Finds w ≥ 0, sum(w)=1, such that w_i*(Σw)_i = w_j*(Σw)_j for all i, j —
     i.e., every asset contributes the same fraction to total portfolio variance.
 
-    Uses the multiplicative update of Roncalli (2013):
-        w_i ← w_i * sqrt(target_budget / marginal_risk_contribution_i)
-    normalised at each step.
+    Uses the Spinu (2013) cyclical coordinate descent: at each step, update
+    w_i to the positive root of  Σ_ii·w_i² + (Σw − Σ_ii·w_i)·w_i − 1/n = 0,
+    then normalise once after all coordinates have been updated.  This
+    unconstrained formulation converges reliably even when the covariance
+    matrix contains negative off-diagonal entries.
 
     Parameters
     ----------
@@ -269,26 +271,32 @@ def _erc_weights_ccd(cov: np.ndarray, tol: float = 1e-12, max_iter: int = 500) -
     -------
     np.ndarray
         (n,) ERC weight vector summing to 1.
+
+    References
+    ----------
+    Spinu, F. (2013). An Algorithm for Computing Risk Parity Weights.
+    SSRN working paper.
     """
     n = cov.shape[0]
     if n == 1:
         return np.array([1.0])
 
+    b = 1.0 / n  # equal risk budget per asset
     w = np.ones(n) / n
     for _ in range(max_iter):
-        Sigma_w = cov @ w
-        port_var = float(w @ Sigma_w)
-        rc = w * Sigma_w  # risk contributions (unnormalised)
-        target = port_var / n  # equal budget
-        # Multiplicative update: w_i ← w_i * sqrt(target / rc_i)
-        w_new = w * np.sqrt(target / np.maximum(rc, 1e-30))
-        w_new = np.maximum(w_new, 0.0)
-        w_new /= w_new.sum()
-        if np.max(np.abs(w_new - w)) < tol:
-            w = w_new
+        w_prev = w.copy()
+        for i in range(n):
+            a_ii = float(cov[i, i])
+            # Cross term: (Σw)_i excluding asset i's own contribution
+            cross = float(cov[i] @ w) - a_ii * w[i]
+            # Positive root of: a_ii·w_i² + cross·w_i - b = 0
+            disc = cross * cross + 4.0 * a_ii * b
+            w[i] = (-cross + np.sqrt(max(disc, 0.0))) / (2.0 * a_ii)
+        # Convergence check on unnormalised weights; normalise only at end
+        if np.max(np.abs(w - w_prev)) < tol:
             break
-        w = w_new
 
+    w /= w.sum()
     return w
 
 
