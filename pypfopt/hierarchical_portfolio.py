@@ -236,3 +236,219 @@ class HRPOpt(BaseOptimizer):
             mu = self.returns.mean() * frequency
 
         return portfolio_performance(self.weights, mu, cov, verbose, risk_free_rate)
+
+
+def _erc_weights_ccd(cov: np.ndarray, tol: float = 1e-12, max_iter: int = 500) -> np.ndarray:
+    """
+    Equal Risk Contribution weights via Spinu (2013) cyclical coordinate descent.
+
+    Finds w ≥ 0, sum(w)=1 such that every asset contributes the same fraction
+    to total portfolio variance:  w_i*(Σw)_i = w_j*(Σw)_j  for all i, j.
+
+    At each CCD step the exact one-dimensional sub-problem is solved:
+
+        Σᵢᵢ·wᵢ² + (Σw − Σᵢᵢ·wᵢ)·wᵢ − 1/n = 0
+
+    taking its positive root.  Weights are NOT normalised between coordinate
+    updates; normalisation happens once per full pass, then at the end.
+    This unconstrained formulation converges reliably for any PD covariance
+    matrix, including those with negative off-diagonal entries.
+
+    Parameters
+    ----------
+    cov : np.ndarray
+        (n, n) covariance matrix (must be positive definite).
+    tol : float
+        Convergence threshold on max absolute change in weights.
+    max_iter : int
+        Maximum number of full passes over all coordinates.
+
+    Returns
+    -------
+    np.ndarray
+        (n,) ERC weight vector summing to 1.
+
+    References
+    ----------
+    Spinu, F. (2013). An Algorithm for Computing Risk Parity Weights.
+    SSRN working paper.
+    """
+    n = cov.shape[0]
+    if n == 1:
+        return np.array([1.0])
+
+    b = 1.0 / n  # equal risk budget
+    w = np.ones(n) / n
+    for _ in range(max_iter):
+        w_prev = w.copy()
+        for i in range(n):
+            a_ii = float(cov[i, i])
+            cross = float(cov[i] @ w) - a_ii * w[i]
+            disc = cross * cross + 4.0 * a_ii * b
+            w[i] = (-cross + np.sqrt(max(disc, 0.0))) / (2.0 * a_ii)
+        if np.max(np.abs(w - w_prev)) < tol:
+            break
+
+    w /= w.sum()
+    return w
+
+
+class ERCOpt(BaseOptimizer):
+    """
+    Equal Risk Contribution (ERC) / Risk Parity portfolio optimizer.
+
+    Constructs weights w ≥ 0, sum(w)=1 such that each asset contributes
+    an equal fraction of total portfolio variance:
+
+    .. code-block:: text
+
+        w_i · (Σw)_i / (w'Σw) = 1/n   for all i
+
+    Equivalently, the marginal risk contributions  w_i·(Σw)_i  are all equal.
+    This is also called the *Risk Parity* portfolio and satisfies
+
+    .. code-block:: text
+
+        w ∝ Σ⁻¹ 1   (inverse-variance) when Σ is diagonal.
+
+    Unlike mean-variance optimization, ERC requires only a covariance estimate
+    and has been shown to be more robust out-of-sample than max-Sharpe or
+    min-variance portfolios (Maillard, Roncalli & Teiletche 2010).
+
+    Instance variables:
+
+    - Inputs
+
+        - ``n_assets`` - int
+        - ``tickers`` - str list
+        - ``returns`` - pd.DataFrame  (if provided)
+        - ``cov_matrix`` - pd.DataFrame  (if provided)
+
+    - Output:
+
+        - ``weights`` - np.ndarray
+
+    Public methods:
+
+    - ``optimize()`` calculates ERC weights
+    - ``portfolio_performance()`` calculates expected return, volatility and Sharpe ratio
+    - ``set_weights()`` creates self.weights from a weights dict
+    - ``clean_weights()`` rounds the weights and clips near-zeros
+    - ``save_weights_to_file()`` saves weights to csv, json, or txt
+
+    Examples
+    --------
+    ::
+
+        from pypfopt import ERCOpt
+
+        erc = ERCOpt(returns=returns_df)
+        weights = erc.optimize()
+        erc.portfolio_performance(verbose=True)
+
+        # From a covariance matrix directly
+        erc = ERCOpt(cov_matrix=cov_df)
+        weights = erc.optimize()
+
+    References
+    ----------
+    Maillard, S., Roncalli, T., & Teiletche, J. (2010). The Properties of
+    Equally Weighted Risk Contribution Portfolios. *Journal of Portfolio
+    Management*, 36(4), 60-70.
+
+    Spinu, F. (2013). An Algorithm for Computing Risk Parity Weights.
+    SSRN working paper.
+    """
+
+    def __init__(self, returns=None, cov_matrix=None):
+        """
+        Parameters
+        ----------
+        returns : pd.DataFrame, optional
+            Asset historical returns (T × n). Used to compute the sample
+            covariance matrix if ``cov_matrix`` is not provided.
+        cov_matrix : pd.DataFrame, optional
+            Covariance matrix of asset returns (n × n). At least one of
+            ``returns`` or ``cov_matrix`` must be supplied.
+
+        Raises
+        ------
+        ValueError
+            If neither ``returns`` nor ``cov_matrix`` is provided.
+        TypeError
+            If ``returns`` is not a pandas DataFrame.
+        """
+        if returns is None and cov_matrix is None:
+            raise ValueError("Either returns or cov_matrix must be provided")
+        if returns is not None and not isinstance(returns, pd.DataFrame):
+            raise TypeError("returns must be a pandas DataFrame")
+
+        self.returns = returns
+        self.cov_matrix = cov_matrix
+
+        tickers = list(cov_matrix.columns) if returns is None else list(returns.columns)
+        super().__init__(len(tickers), tickers)
+
+    def optimize(self, tol=1e-12, max_iter=500):
+        """
+        Compute the Equal Risk Contribution (Risk Parity) portfolio.
+
+        Uses the Spinu (2013) cyclical coordinate descent: iteratively solves
+        the exact one-dimensional sub-problem for each asset until the
+        maximum weight change falls below ``tol``.
+
+        Parameters
+        ----------
+        tol : float, optional
+            Convergence tolerance, default 1e-12.
+        max_iter : int, optional
+            Maximum CCD iterations, default 500.
+
+        Returns
+        -------
+        OrderedDict
+            ``{ticker: weight}`` mapping, weights sum to 1 and all ≥ 0.
+        """
+        cov = (
+            self.returns.cov()
+            if self.cov_matrix is None
+            else self.cov_matrix
+        )
+        cov_arr = np.asarray(cov)
+        raw_w = _erc_weights_ccd(cov_arr, tol=tol, max_iter=max_iter)
+        weights = collections.OrderedDict(zip(self.tickers, raw_w))
+        self.set_weights(weights)
+        return weights
+
+    def portfolio_performance(self, verbose=False, risk_free_rate=0.0, frequency=252):
+        """
+        After optimising, calculate (and optionally print) the performance of
+        the ERC portfolio.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            Whether to print the performance, default False.
+        risk_free_rate : float, optional
+            Annualised risk-free rate, default 0.0.
+        frequency : int, optional
+            Number of periods per year, default 252 (trading days).
+
+        Returns
+        -------
+        (float, float, float)
+            Expected return, volatility, Sharpe ratio.
+
+        Raises
+        ------
+        ValueError
+            If ``optimize()`` has not been called yet.
+        """
+        if self.returns is None:
+            cov = self.cov_matrix
+            mu = None
+        else:
+            cov = self.returns.cov() * frequency
+            mu = self.returns.mean() * frequency
+
+        return portfolio_performance(self.weights, mu, cov, verbose, risk_free_rate)
