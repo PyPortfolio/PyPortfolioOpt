@@ -52,6 +52,16 @@ def test_cla_max_sharpe_short():
     assert sharpe > long_only_sharpe
 
 
+def test_cla_max_sharpe_rejects_singular_covariance():
+    mu = np.array([0.1, 0.2])
+    cov = np.array([[0.01, 0.01], [0.01, 0.01]])
+
+    cla = CLA(mu, cov)
+
+    with pytest.raises(ValueError, match="positive definite covariance matrix"):
+        cla.max_sharpe()
+
+
 def test_cla_custom_bounds():
     bounds = [(0.01, 0.13), (0.02, 0.11)] * 10
     cla = setup_cla(weight_bounds=bounds)
