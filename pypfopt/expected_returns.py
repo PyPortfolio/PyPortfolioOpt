@@ -305,8 +305,13 @@ def james_stein_return(
     grand_mean = mu.mean()
 
     if shrinkage is None:
-        p = returns.shape[1]
-        dispersion = float(((mu - grand_mean) ** 2).sum())
+        # Base the James-Stein dimensionality only on assets that carry usable
+        # information. All-NaN or single-observation columns have no meaningful
+        # mean/variance and would otherwise inflate ``p`` and bias the shrinkage
+        # intensity.
+        valid = (returns.count() >= 2) & np.isfinite(mu)
+        p = int(valid.sum())
+        dispersion = float(((mu[valid] - grand_mean) ** 2).sum())
         if p <= 2 or dispersion <= 1e-12:
             # Degenerate case: no meaningful cross-sectional dispersion to shrink,
             # or too few assets for the James-Stein rule. Fall back to full
@@ -314,9 +319,13 @@ def james_stein_return(
             shrinkage = 1.0 if dispersion <= 1e-12 else 0.0
         else:
             # Variance of each annualised mean estimator (~ frequency**2 * var / n),
-            # averaged across assets. The frequency**2 factor cancels against the
-            # annualised dispersion, so the estimate is frequency-invariant.
-            tau_squared = (frequency**2 * returns.var(ddof=1) / returns.count()).mean()
+            # averaged across the valid assets. For the arithmetic (non-compounding)
+            # mean this frequency**2 factor cancels against the annualised
+            # dispersion, making the intensity frequency-invariant; for the
+            # geometric/compounding mean the invariance holds only approximately.
+            tau_squared = (frequency**2 * returns.var(ddof=1) / returns.count())[
+                valid
+            ].mean()
             shrinkage = float(np.clip((p - 2) * tau_squared / dispersion, 0.0, 1.0))
 
     return shrinkage * grand_mean + (1 - shrinkage) * mu
