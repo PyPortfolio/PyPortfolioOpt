@@ -22,6 +22,16 @@ import scipy.spatial.distance as ssd
 from pypfopt.base import BaseOptimizer, portfolio_performance
 from pypfopt.risk_models import cov_to_corr
 
+_VALID_LINKAGE_METHODS = {
+    "single",
+    "complete",
+    "average",
+    "weighted",
+    "centroid",
+    "median",
+    "ward",
+}
+
 
 class HRPOpt(BaseOptimizer):
     """
@@ -176,7 +186,7 @@ class HRPOpt(BaseOptimizer):
         OrderedDict
             weights for the HRP portfolio
         """
-        if linkage_method not in sch._LINKAGE_METHODS:
+        if linkage_method not in _VALID_LINKAGE_METHODS:
             raise ValueError("linkage_method must be one recognised by scipy")
 
         if self.returns is None:

@@ -56,25 +56,33 @@ to install XCode Command Line Tools (see `here <https://osxdaily.com/2014/02/12/
 For Windows users, download Visual Studio `here <https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=16>`__,
 with additional instructions `here <https://docs.google.com/presentation/d/0B4GsMXCRaSSIOWpYQkstajlYZ0tPVkNQSElmTWh1dXFaYkJr/edit?usp=sharing&ouid=117107708911390632479&resourcekey=0-HEezB2NFstz1GjKDkroJSQ&rtpof=true&sd=true>`__.
 
-Installation can then be done via pip::
-
-    pip install PyPortfolioOpt
-
-(you may need to follow separate installation instructions for `cvxopt <https://cvxopt.org/install/index.html#>`__ and `cvxpy <https://www.cvxpy.org/install/>`__).
-
-For the sake of best practice, it is good to do this with a dependency manager. I suggest you
-set yourself up with `poetry <https://github.com/sdispater/poetry>`_, then within a new poetry project
-run:
+Installation can then be done with `uv <https://docs.astral.sh/uv/>`__, which is the
+recommended fast installer for Python packages:
 
 .. code-block:: text
 
-    poetry add PyPortfolioOpt
+    uv venv
+    uv pip install pyportfolioopt
+
+If you are not using uv, you can install with pip instead::
+
+    pip install pyportfolioopt
+
+(you may need to follow separate installation instructions for `cvxopt <https://cvxopt.org/install/index.html#>`__ and `cvxpy <https://www.cvxpy.org/install/>`__).
+
+If your project already uses `poetry <https://github.com/python-poetry/poetry>`_, you can
+add PyPortfolioOpt to it with:
+
+.. code-block:: text
+
+    poetry add pyportfolioopt
 
 The alternative is to clone/download the project, then in the project directory run
 
 .. code-block:: text
 
-    python setup.py install
+    uv venv
+    uv pip install .
 
 Thanks to Thomas Schmelzer, PyPortfolioOpt now supports Docker (requires 
 **make**, **docker**, **docker-compose**). Build your first container with 
@@ -92,19 +100,15 @@ For developers
 --------------
 
 If you are planning on using PyPortfolioOpt as a starting template for significant
-modifications, it probably makes sense to clone the repository and to just use the
-source code
+modifications, it probably makes sense to clone the repository and install it in
+editable mode:
 
 .. code-block:: text
 
-    git clone https://github.com/pyportfolio/pyportfolioopt
-
-Alternatively, if you still want the convenience of a global ``from pypfopt import x``,
-you should try
-
-.. code-block:: text
-
-    pip install -e git+https://github.com/pyportfolio/pyportfolioopt.git
+    git clone https://github.com/PyPortfolio/PyPortfolioOpt.git
+    cd PyPortfolioOpt
+    uv venv
+    uv pip install -e .
 
 
 A Quick Example
