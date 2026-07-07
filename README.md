@@ -53,6 +53,13 @@ Head over to the **[documentation on ReadTheDocs](https://pyportfolioopt.readthe
 
 ## 🚀 Installation
 
+### Using uv (recommended)
+
+```bash
+uv venv
+uv pip install pyportfolioopt
+```
+
 ### Using pip
 
 ```bash
@@ -61,12 +68,13 @@ pip install pyportfolioopt
 
 ### From source
 
-Clone the repository, navigate to the folder, and install using pip:
+Clone the repository, navigate to the folder, and install using uv:
 
 ```bash
 git clone https://github.com/PyPortfolio/PyPortfolioOpt.git
 cd PyPortfolioOpt
-pip install .
+uv venv
+uv pip install .
 ```
 
 ## Getting started
