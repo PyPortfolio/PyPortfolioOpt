@@ -11,6 +11,7 @@ from .efficient_frontier import (
     EfficientFrontier,
     EfficientSemivariance,
 )
+from .fxmacrodata import event_window_mask, get_release_calendar
 from .hierarchical_portfolio import HRPOpt
 from .risk_models import CovarianceShrinkage
 
@@ -27,6 +28,8 @@ __all__ = [
     "EfficientSemivariance",
     "EfficientCVaR",
     "EfficientCDaR",
+    "event_window_mask",
+    "get_release_calendar",
     "HRPOpt",
     "CovarianceShrinkage",
 ]
