@@ -150,3 +150,62 @@ def test_cla_efficient_frontier():
     # higher return = higher risk
     assert sigma[-1] < sigma[0] and mu[-1] < mu[0]
     assert weights[0].shape == (20, 1)
+
+
+def test_cla_cvxcla_fallback_warning():
+    """cvxcla unavailable → RuntimeWarning, falls back to standard backend."""
+    import sys
+
+    original = sys.modules.get("cvxcla")
+    sys.modules["cvxcla"] = None
+    try:
+        with pytest.warns(RuntimeWarning, match="cvxcla is not installed"):
+            cla = setup_cla(use_cvxcla=True)
+        assert cla.use_cvxcla is False
+    finally:
+        if original is None:
+            sys.modules.pop("cvxcla", None)
+        else:
+            sys.modules["cvxcla"] = original
+
+
+def test_cla_cvxcla_max_sharpe():
+    """cvxcla backend max_sharpe matches standard implementation."""
+    pytest.importorskip("cvxcla")
+    cla = setup_cla(use_cvxcla=True)
+    assert cla.use_cvxcla is True
+    w = cla.max_sharpe()
+    assert isinstance(w, dict)
+    assert set(w.keys()) == set(cla.tickers)
+    np.testing.assert_almost_equal(cla.weights.sum(), 1)
+    np.testing.assert_allclose(
+        cla.portfolio_performance(risk_free_rate=0.02),
+        (0.2994470912768992, 0.21764331657015668, 1.283968171780824),
+        rtol=1e-4,
+    )
+
+
+def test_cla_cvxcla_min_volatility():
+    """cvxcla backend min_volatility matches standard implementation."""
+    pytest.importorskip("cvxcla")
+    cla = setup_cla(use_cvxcla=True)
+    w = cla.min_volatility()
+    assert isinstance(w, dict)
+    assert set(w.keys()) == set(cla.tickers)
+    np.testing.assert_almost_equal(cla.weights.sum(), 1)
+    np.testing.assert_allclose(
+        cla.portfolio_performance(risk_free_rate=0.02),
+        (0.1505682139948257, 0.15915084514118688, 0.8204054077060994),
+        rtol=1e-4,
+    )
+
+
+def test_cla_cvxcla_efficient_frontier():
+    """cvxcla backend efficient_frontier sets frontier_values and returns valid lists."""
+    pytest.importorskip("cvxcla")
+    cla = setup_cla(use_cvxcla=True)
+    mu, sigma, weights = cla.efficient_frontier(points=50)
+    assert len(mu) > 0
+    assert len(sigma) == len(mu)
+    assert len(weights) == len(mu)
+    assert cla.frontier_values is not None

@@ -4,6 +4,8 @@ generates optimal portfolios using the Critical Line Algorithm as implemented
 by Marcos Lopez de Prado and David Bailey.
 """
 
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -47,7 +49,9 @@ class CLA(BaseOptimizer):
     - ``save_weights_to_file()`` saves the weights to csv, json, or txt.
     """
 
-    def __init__(self, expected_returns, cov_matrix, weight_bounds=(0, 1)):
+    def __init__(
+        self, expected_returns, cov_matrix, weight_bounds=(0, 1), use_cvxcla=False
+    ):
         """
         Parameters
         ----------
@@ -59,6 +63,9 @@ class CLA(BaseOptimizer):
         weight_bounds : tuple (float, float) or (list/ndarray, list/ndarray) or list(tuple(float, float))
             minimum and maximum weight of an asset, defaults to (0, 1).
             Must be changed to (-1, 1) for portfolios with shorting.
+        use_cvxcla : bool, optional
+            whether to use the ``cvxcla`` library as a high-performance backend,
+            defaults to False. Requires ``cvxcla`` to be installed
 
         Raises
         ------
@@ -102,6 +109,31 @@ class CLA(BaseOptimizer):
         else:
             tickers = list(range(len(self.mean)))
         super().__init__(len(tickers), tickers)
+
+        # Optional cvxcla backend
+        self.use_cvxcla = False
+        self._cvxcla_engine = None
+        if use_cvxcla:
+            try:
+                from cvxcla import CLA as _CVXCLAEngine
+
+                n = self.n_assets
+                self._cvxcla_engine = _CVXCLAEngine(
+                    mean=self.expected_returns,
+                    covariance=self.cov_matrix,
+                    lower_bounds=self.lB.flatten(),
+                    upper_bounds=self.uB.flatten(),
+                    a=np.ones((1, n)),
+                    b=np.ones(1),
+                )
+                self.use_cvxcla = True
+            except ImportError:
+                warnings.warn(
+                    "cvxcla is not installed – falling back to the standard CLA "
+                    "implementation. Install it with: pip install cvxcla",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
 
     @staticmethod
     def _infnone(x):
@@ -159,7 +191,7 @@ class CLA(BaseOptimizer):
             w1 = np.dot(g4, wB)
             g4 = np.dot(onesF.T, w1)
             g = -self.ls[-1] * g1 / g2 + (1 - g3 + g4) / g2
-        g = float(g[0, 0])
+        g = float(g.item() if hasattr(g, "item") else g)
         # 2) compute weights
         w2 = np.dot(covarF_inv, onesF)
         w3 = np.dot(covarF_inv, meanF)
@@ -189,7 +221,7 @@ class CLA(BaseOptimizer):
             l3 = np.dot(l2, wB)
             l2 = np.dot(onesF.T, l3)
             res = ((1 - l1 + l2) * c4[i] - c1 * (bi + l3[i])) / c
-        res = float(res[0, 0])
+        res = float(res.item() if hasattr(res, "item") else res)
         return res, bi
 
     def _get_matrices(self, f):
@@ -406,6 +438,11 @@ class CLA(BaseOptimizer):
         OrderedDict
             asset weights for the max-sharpe portfolio
         """
+        if self.use_cvxcla:
+            _, weights = self._cvxcla_engine.frontier.max_sharpe
+            self.weights = np.asarray(weights, dtype=float)
+            return self._make_output_weights()
+
         if not self.w:
             self._solve()
         # 1) Compute the local max SR portfolio between any two neighbor turning points
@@ -430,6 +467,12 @@ class CLA(BaseOptimizer):
         OrderedDict
             asset weights for the volatility-minimising portfolio
         """
+        if self.use_cvxcla:
+            # Last turning point on the frontier is the minimum variance portfolio
+            weights = self._cvxcla_engine.frontier.weights[-1]
+            self.weights = np.asarray(weights, dtype=float)
+            return self._make_output_weights()
+
         if not self.w:
             self._solve()
         var = []
@@ -459,6 +502,14 @@ class CLA(BaseOptimizer):
         (float list, float list, np.ndarray list)
             return list, std list, weight list
         """
+        if self.use_cvxcla:
+            frontier = self._cvxcla_engine.frontier.interpolate(points)
+            mu = list(frontier.returns)
+            sigma = list(frontier.volatility)
+            weights = [np.asarray(w, dtype=float) for w in frontier.weights]
+            self.frontier_values = (mu, sigma, weights)
+            return mu, sigma, weights
+
         if not self.w:
             self._solve()
 
