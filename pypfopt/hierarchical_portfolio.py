@@ -179,7 +179,7 @@ class HRPOpt(BaseOptimizer):
         if linkage_method not in sch._LINKAGE_METHODS:
             raise ValueError("linkage_method must be one recognised by scipy")
 
-        if self.returns is None:
+        if self.cov_matrix is not None:
             cov = self.cov_matrix
             corr = cov_to_corr(self.cov_matrix).round(6)
         else:
@@ -203,7 +203,7 @@ class HRPOpt(BaseOptimizer):
     def portfolio_performance(self, verbose=False, risk_free_rate=0.0, frequency=252):
         """
         After optimising, calculate (and optionally print) the performance of the optimal
-        portfolio. Currently calculates expected return, volatility, and the Sharpe ratio
+        portfolio. Currently, calculates expected return, volatility, and the Sharpe ratio
         assuming returns are daily
 
         Parameters
@@ -228,9 +228,12 @@ class HRPOpt(BaseOptimizer):
         (float, float, float)
             expected return, volatility, Sharpe ratio.
         """
-        if self.returns is None:
+        if self.cov_matrix is not None:
             cov = self.cov_matrix
-            mu = None
+            if self.returns is not None:
+                mu = self.returns.mean() * frequency
+            else:
+                mu = None
         else:
             cov = self.returns.cov() * frequency
             mu = self.returns.mean() * frequency
