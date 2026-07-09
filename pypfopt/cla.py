@@ -364,8 +364,8 @@ class CLA(BaseOptimizer):
                         self.w[-1][i],
                     )
                     if (
-                        self.ls[-1] is None or lam < self.ls[-1]
-                    ) and lam > CLA._infnone(l_out):
+                        self.ls[-1] is None or CLA._infnone(lam) < self.ls[-1]
+                    ) and CLA._infnone(lam) > CLA._infnone(l_out):
                         l_out, i_out = lam, i
             if (l_in is None or l_in < 0) and (l_out is None or l_out < 0):
                 # 3) compute minimum variance solution

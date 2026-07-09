@@ -52,6 +52,19 @@ def test_cla_max_sharpe_short():
     assert sharpe > long_only_sharpe
 
 
+def test_cla_max_sharpe_equal_returns_matches_min_volatility():
+    mu = np.array([0.1, 0.1])
+    S = np.array([[0.01, 0.01], [0.01, 0.02]])
+
+    cla = CLA(mu, S)
+    w = cla.max_sharpe()
+
+    min_vol_cla = CLA(mu, S)
+    min_vol_w = min_vol_cla.min_volatility()
+    assert w == min_vol_w
+    np.testing.assert_allclose(cla.weights, min_vol_cla.weights)
+
+
 def test_cla_custom_bounds():
     bounds = [(0.01, 0.13), (0.02, 0.11)] * 10
     cla = setup_cla(weight_bounds=bounds)
