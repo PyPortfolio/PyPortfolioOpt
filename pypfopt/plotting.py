@@ -66,7 +66,9 @@ def _plot_io(**kwargs):
         plt.show()
 
 
-def plot_covariance(cov_matrix, plot_correlation=False, show_tickers=True, **kwargs):
+def plot_covariance(
+    cov_matrix, plot_correlation=False, show_tickers=True, show_values=False, **kwargs
+):
     """
     Generate a basic plot of the covariance (or correlation) matrix, given a
     covariance matrix.
@@ -80,6 +82,9 @@ def plot_covariance(cov_matrix, plot_correlation=False, show_tickers=True, **kwa
     show_tickers : bool, optional
         whether to use tickers as labels (not recommended for large portfolios),
         defaults to True
+    show_values : bool, optional
+        if True, annotate each cell with the numeric value formatted to
+        two decimal places. Defaults to False.
 
     Returns
     -------
@@ -92,17 +97,55 @@ def plot_covariance(cov_matrix, plot_correlation=False, show_tickers=True, **kwa
         matrix = risk_models.cov_to_corr(cov_matrix)
     else:
         matrix = cov_matrix
+
     fig, ax = plt.subplots()
 
     cax = ax.imshow(matrix)
     fig.colorbar(cax)
 
+    # if show_tickers:
+    #     ax.set_xticks(np.arange(0, matrix.shape[0], 1))
+    #     ax.set_xticklabels(matrix.index)
+    #     ax.set_yticks(np.arange(0, matrix.shape[0], 1))
+    #     ax.set_yticklabels(matrix.index)
+    #     plt.xticks(rotation=90)
     if show_tickers:
         ax.set_xticks(np.arange(0, matrix.shape[0], 1))
-        ax.set_xticklabels(matrix.index)
+        # Handle both DataFrame and ndarray for tick labels
+        if hasattr(matrix, "index"):
+            labels = matrix.index
+        else:
+            # For numpy array, create generic labels
+            labels = [f"Asset {i + 1}" for i in range(matrix.shape[0])]
+
+        ax.set_xticklabels(labels)
         ax.set_yticks(np.arange(0, matrix.shape[0], 1))
-        ax.set_yticklabels(matrix.index)
+        ax.set_yticklabels(labels)
         plt.xticks(rotation=90)
+
+    # Optional: overlay numeric values on each cell
+    if show_values:
+        is_dataframe = hasattr(matrix, "iloc")
+        n_rows, n_cols = matrix.shape
+
+        for i in range(n_rows):
+            for j in range(n_cols):
+                if is_dataframe:
+                    val = matrix.iloc[i, j]
+                else:
+                    val = matrix[i, j]
+
+                text_str = f"{val:.2f}"
+
+                ax.text(
+                    j,
+                    i,
+                    text_str,
+                    ha="center",
+                    va="center",
+                    color="w",
+                    fontsize=plt.rcParams.get("font.size", 10) * 0.9,
+                )
 
     _plot_io(**kwargs)
 

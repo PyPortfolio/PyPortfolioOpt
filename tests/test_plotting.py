@@ -416,3 +416,67 @@ def test_plot_efficient_frontier():
     ef = setup_efficient_frontier()
     ef.min_volatility()
     optimal_ret, optimal_risk, _ = ef.portfolio_performance(risk_free_rate=0.02)
+
+
+@pytest.mark.skipif(
+    not _check_soft_dependencies(["matplotlib"], severity="none"),
+    reason="skip test if matplotlib is not installed in environment",
+)
+def test_plot_covariance_show_values():
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import pandas as pd
+
+    # Simple 3x3 covariance matrix
+    cov_data = np.array(
+        [[0.04, 0.01, 0.002], [0.01, 0.09, 0.003], [0.002, 0.003, 0.16]]
+    )
+    tickers = ["A", "B", "C"]
+    df = pd.DataFrame(cov_data, index=tickers, columns=tickers)
+
+    def count_texts(ax):
+        return len([obj for obj in ax.findobj() if obj.__class__.__name__ == "Text"])
+
+    # Test with ndarray input, show_values=False (baseline)
+    plt.figure()
+    ax = plotting.plot_covariance(cov_data, showfig=False)
+    baseline_texts = count_texts(ax)
+    plt.clf()
+    plt.close()
+
+    # Test with ndarray input, show_values=True
+    plt.figure()
+    ax = plotting.plot_covariance(cov_data, show_values=True, showfig=False)
+    with_values_texts = count_texts(ax)
+    plt.clf()
+    plt.close()
+
+    # Expect more text annotations when show_values=True
+    assert with_values_texts > baseline_texts
+
+    # Test with DataFrame input, show_values=False
+    plt.figure()
+    ax = plotting.plot_covariance(df, showfig=False)
+    baseline_texts_df = count_texts(ax)
+    plt.clf()
+    plt.close()
+
+    # Test with DataFrame input, show_values=True
+    plt.figure()
+    ax = plotting.plot_covariance(df, show_values=True, showfig=False)
+    with_values_texts_df = count_texts(ax)
+    plt.clf()
+    plt.close()
+
+    assert with_values_texts_df > baseline_texts_df
+
+    # Ensure saving still works
+    with tempfile.TemporaryDirectory() as tmpdir:
+        fname = f"{tmpdir}/cov_plot.png"
+        ax = plotting.plot_covariance(
+            df, show_values=True, filename=fname, showfig=False
+        )
+        assert os.path.exists(fname)
+        assert os.path.getsize(fname) > 0
+        plt.clf()
+        plt.close()
