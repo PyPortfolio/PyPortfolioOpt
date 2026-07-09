@@ -210,6 +210,10 @@ A far more comprehensive version of this can be found on [ReadTheDocs](https://p
 - Capital Asset Pricing Model (CAPM):
   - a simple model to predict returns based on the beta to the market
   - this is used all over finance!
+- Fama-French 3-factor model:
+  - estimates expected returns using exposures to market, size, and value factors
+- Fama-French 5-factor model:
+  - extends FF3 with profitability and investment factors
 
 ### Risk models (covariance)
 

@@ -16,6 +16,7 @@ Currently implemented:
     - mean historical return
     - exponentially weighted mean historical return
     - CAPM estimate of returns
+    - Fama-French 3-factor and 5-factor estimates of returns
 
 Additionally, we provide utility functions to convert from returns to prices and vice-versa.
 """
@@ -105,6 +106,8 @@ def return_model(prices, method="mean_historical_return", **kwargs):
         - ``mean_historical_return``
         - ``ema_historical_return``
         - ``capm_return``
+        - ``ff3_return``
+        - ``ff5_return``
 
     Raises
     ------
@@ -114,7 +117,7 @@ def return_model(prices, method="mean_historical_return", **kwargs):
     Returns
     -------
     pd.DataFrame
-        annualised sample covariance matrix
+        annualised expected return estimate for each asset
     """
     if method == "mean_historical_return":
         return mean_historical_return(prices, **kwargs)
@@ -122,6 +125,10 @@ def return_model(prices, method="mean_historical_return", **kwargs):
         return ema_historical_return(prices, **kwargs)
     elif method == "capm_return":
         return capm_return(prices, **kwargs)
+    elif method == "ff3_return":
+        return ff_return(prices, model="ff3", **kwargs)
+    elif method == "ff5_return":
+        return ff_return(prices, model="ff5", **kwargs)
     else:
         raise NotImplementedError("Return model {} not implemented".format(method))
 
@@ -313,3 +320,119 @@ def capm_return(
 
     # CAPM formula
     return risk_free_rate + betas * (mkt_mean_ret - risk_free_rate)
+
+
+def ff_return(
+    prices,
+    factor_data,
+    returns_data=False,
+    model="ff3",
+    compounding=True,
+    frequency=252,
+    log_returns=False,
+):
+    """
+    Compute a return estimate using the Fama-French factor model.
+
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the assets.
+    factor_data : pd.DataFrame
+        factor returns indexed by date.
+
+        Required columns for ff3:
+        - RF
+        - Mkt-RF
+        - SMB
+        - HML
+
+        Additional required columns for ff5:
+        - RMW
+        - CMA
+
+    returns_data : bool, optional
+        if true, prices is interpreted as returns.
+    model : str, optional
+        one of {"ff3", "ff5"}.
+    compounding : bool, optional
+        use geometric annualisation if True.
+    frequency : int, optional
+        periods per year.
+    log_returns : bool, optional
+        whether to compute log returns.
+
+    Returns
+    -------
+    pd.Series
+        annualised expected returns.
+    """
+
+    if not isinstance(prices, pd.DataFrame):
+        warnings.warn("prices are not in a dataframe", RuntimeWarning)
+        prices = pd.DataFrame(prices)
+
+    if not isinstance(factor_data, pd.DataFrame):
+        warnings.warn("factor_data is not in a dataframe", RuntimeWarning)
+        factor_data = pd.DataFrame(factor_data)
+
+    if model not in {"ff3", "ff5"}:
+        raise ValueError("model must be either 'ff3' or 'ff5'")
+
+    if returns_data:
+        returns = prices.copy()
+    else:
+        returns = returns_from_prices(prices, log_returns)
+
+    _check_returns(returns)
+
+    required = ["RF", "Mkt-RF", "SMB", "HML"]
+    if model == "ff5":
+        required.extend(["RMW", "CMA"])
+
+    missing = [c for c in required if c not in factor_data.columns]
+    if missing:
+        raise ValueError(f"factor_data missing required columns: {missing}")
+
+    common_index = returns.index.intersection(factor_data.index)
+    if len(common_index) == 0:
+        raise ValueError("No overlapping dates between asset returns and factor data")
+
+    returns = returns.loc[common_index]
+    factors = factor_data.loc[common_index, required].copy()
+
+    data = returns.join(factors, how="inner").dropna()
+    if data.empty:
+        raise ValueError("No valid rows after aligning returns and factor data")
+
+    returns = data[returns.columns]
+    factors = data[required]
+
+    excess_returns = returns.sub(factors["RF"], axis=0)
+
+    factor_cols = ["Mkt-RF", "SMB", "HML"]
+    if model == "ff5":
+        factor_cols.extend(["RMW", "CMA"])
+
+    X = np.column_stack([np.ones(len(factors)), factors[factor_cols].to_numpy()])
+    factor_means = factors[factor_cols].mean().to_numpy()
+
+    expected_returns = {}
+    rf_mean = factors["RF"].mean()
+
+    for asset in excess_returns.columns:
+        y = excess_returns[asset].to_numpy()
+        beta = np.linalg.lstsq(X, y, rcond=None)[0]
+        alpha = beta[0]
+        factor_loadings = beta[1:]
+
+        expected_period_return = rf_mean + alpha + factor_loadings @ factor_means
+
+        if compounding:
+            expected_return = (1 + expected_period_return) ** frequency - 1
+        else:
+            expected_return = expected_period_return * frequency
+
+        expected_returns[asset] = expected_return
+
+    return pd.Series(expected_returns, dtype="float64")

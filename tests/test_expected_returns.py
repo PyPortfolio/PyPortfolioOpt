@@ -299,3 +299,277 @@ def test_log_return_passthrough():
         except AssertionError:
             return
         assert False
+
+
+def _make_ff_test_data(model="ff3", n_periods=120, n_assets=4, seed=42):
+    rng = np.random.default_rng(seed)
+    dates = pd.date_range("2020-01-01", periods=n_periods, freq="B")
+
+    factor_cols = ["Mkt-RF", "SMB", "HML"]
+    if model == "ff5":
+        factor_cols += ["RMW", "CMA"]
+
+    factors = pd.DataFrame(
+        {
+            "RF": rng.normal(0.0001, 0.00002, n_periods),
+            "Mkt-RF": rng.normal(0.0004, 0.008, n_periods),
+            "SMB": rng.normal(0.0002, 0.004, n_periods),
+            "HML": rng.normal(0.0001, 0.004, n_periods),
+        },
+        index=dates,
+    )
+
+    if model == "ff5":
+        factors["RMW"] = rng.normal(0.00015, 0.003, n_periods)
+        factors["CMA"] = rng.normal(0.0001, 0.003, n_periods)
+
+    betas = rng.normal(0.6, 0.15, size=(n_assets, len(factor_cols)))
+    alphas = rng.normal(0.0002, 0.00005, size=n_assets)
+
+    factor_matrix = factors[factor_cols].to_numpy()
+    excess_returns = alphas + factor_matrix @ betas.T
+    returns = excess_returns + factors["RF"].to_numpy()[:, None]
+
+    returns_df = pd.DataFrame(
+        returns, index=dates, columns=[f"Asset {i+1}" for i in range(n_assets)]
+    )
+    prices = expected_returns.prices_from_returns(returns_df)
+    prices.columns = returns_df.columns
+
+    return prices, returns_df, factors
+
+
+def test_ff3_return():
+    prices, _, factors = _make_ff_test_data(model="ff3")
+    mu = expected_returns.ff_return(prices, factors, model="ff3")
+
+    assert isinstance(mu, pd.Series)
+    assert list(mu.index) == list(prices.columns)
+    assert mu.notnull().all()
+    assert mu.dtype == "float64"
+
+
+def test_ff5_return():
+    prices, _, factors = _make_ff_test_data(model="ff5")
+    mu = expected_returns.ff_return(prices, factors, model="ff5")
+
+    assert isinstance(mu, pd.Series)
+    assert list(mu.index) == list(prices.columns)
+    assert mu.notnull().all()
+    assert mu.dtype == "float64"
+
+
+def test_ff_return_missing_columns():
+    prices, _, factors = _make_ff_test_data(model="ff3")
+    factors = factors.drop(columns=["HML"])
+
+    with pytest.raises(ValueError, match="missing required columns"):
+        expected_returns.ff_return(prices, factors, model="ff3")
+
+
+def test_ff_return_invalid_model():
+    prices, _, factors = _make_ff_test_data(model="ff3")
+
+    with pytest.raises(ValueError, match="model must be either"):
+        expected_returns.ff_return(prices, factors, model="ff4")
+
+
+def test_ff_return_no_overlap():
+    prices, _, factors = _make_ff_test_data(model="ff3")
+    factors.index = pd.date_range("2030-01-01", periods=len(factors), freq="B")
+
+    with pytest.raises(ValueError, match="No overlapping dates"):
+        expected_returns.ff_return(prices, factors, model="ff3")
+
+
+def test_return_model_ff3_return():
+    prices, _, factors = _make_ff_test_data(model="ff3")
+
+    mu1 = expected_returns.return_model(prices, method="ff3_return", factor_data=factors)
+    mu2 = expected_returns.ff_return(prices, factors)
+
+    pd.testing.assert_series_equal(mu1, mu2)
+
+
+def test_return_model_ff5_return():
+    prices, _, factors = _make_ff_test_data(model="ff5")
+
+    mu1 = expected_returns.return_model(prices, method="ff5_return", factor_data=factors)
+    mu2 = expected_returns.ff_return(prices, factors)
+
+    pd.testing.assert_series_equal(mu1, mu2)
+
+
+def _make_ff_known_data(model="ff3"):
+    rng = np.random.default_rng(7)
+    dates = pd.date_range("2021-01-01", periods=80, freq="B")
+
+    factors = pd.DataFrame(
+        {
+            "RF": rng.normal(0.0001, 0.00002, len(dates)),
+            "Mkt-RF": rng.normal(0.0004, 0.008, len(dates)),
+            "SMB": rng.normal(0.0002, 0.004, len(dates)),
+            "HML": rng.normal(0.0001, 0.004, len(dates)),
+        },
+        index=dates,
+    )
+
+    if model == "ff5":
+        factors["RMW"] = rng.normal(0.00015, 0.003, len(dates))
+        factors["CMA"] = rng.normal(0.00010, 0.003, len(dates))
+
+    factor_cols = ["Mkt-RF", "SMB", "HML"]
+    if model == "ff5":
+        factor_cols += ["RMW", "CMA"]
+
+    alphas = np.array([0.00020, 0.00010, -0.00005])
+    betas = np.array(
+        [
+            [1.10, 0.40, -0.20, 0.00, 0.00],
+            [0.80, -0.10, 0.35, 0.00, 0.00],
+            [1.25, 0.05, -0.15, 0.00, 0.00],
+        ]
+    )
+
+    if model == "ff3":
+        betas = betas[:, :3]
+
+    factor_matrix = factors[factor_cols].to_numpy()
+    returns = factors["RF"].to_numpy()[:, None] + alphas + factor_matrix @ betas.T
+
+    returns_df = pd.DataFrame(
+        returns, index=dates, columns=["Asset 1", "Asset 2", "Asset 3"]
+    )
+    return returns_df, factors, alphas, betas, factor_cols
+
+
+def test_ff5_return_missing_columns():
+    prices, _, factors = _make_ff_test_data(model="ff5")
+    factors = factors.drop(columns=["CMA"])
+
+    with pytest.raises(ValueError, match="missing required columns"):
+        expected_returns.ff_return(prices, factors, model="ff5")
+
+
+def test_ff_return_no_valid_rows_after_dropna():
+    prices, _, factors = _make_ff_test_data(model="ff3")
+    factors = factors.copy()
+    factors[["RF", "Mkt-RF", "SMB", "HML"]] = np.nan
+
+    with pytest.raises(ValueError, match="No valid rows after aligning"):
+        expected_returns.ff_return(prices, factors, model="ff3")
+
+
+def test_ff3_return_recovers_known_linear_model():
+    returns_df, factors, alphas, betas, factor_cols = _make_ff_known_data(model="ff3")
+
+    mu = expected_returns.ff_return(
+        returns_df,
+        factors,
+        returns_data=True,
+        model="ff3",
+        compounding=False,
+        frequency=1,
+    )
+
+    expected = (
+        factors["RF"].mean()
+        + alphas
+        + betas @ factors[factor_cols].mean().to_numpy()
+    )
+    expected = pd.Series(expected, index=returns_df.columns, dtype="float64")
+
+    pd.testing.assert_series_equal(mu, expected, check_exact=False, rtol=1e-10, atol=1e-12)
+
+
+def test_ff5_return_recovers_known_linear_model():
+    returns_df, factors, alphas, betas, factor_cols = _make_ff_known_data(model="ff5")
+
+    mu = expected_returns.ff_return(
+        returns_df,
+        factors,
+        returns_data=True,
+        model="ff5",
+        compounding=False,
+        frequency=1,
+    )
+
+    expected = (
+        factors["RF"].mean()
+        + alphas
+        + betas @ factors[factor_cols].mean().to_numpy()
+    )
+
+    expected = pd.Series(
+        expected,
+        index=returns_df.columns,
+        dtype="float64",
+    )
+
+    pd.testing.assert_series_equal(
+        mu,
+        expected,
+        check_exact=False,
+        rtol=1e-10,
+        atol=1e-12,
+    )
+
+
+def test_ff_return_returns_data():
+    prices, _, factors = _make_ff_test_data(model="ff3")
+
+    returns_df = expected_returns.returns_from_prices(prices)
+
+    mu_from_prices = expected_returns.ff_return(
+        prices,
+        factors,
+        model="ff3",
+    )
+
+    mu_from_returns = expected_returns.ff_return(
+        returns_df,
+        factors,
+        model="ff3",
+        returns_data=True,
+    )
+
+    pd.testing.assert_series_equal(mu_from_prices, mu_from_returns)
+
+
+def test_ff_return_compounding_branch():
+    returns_df, factors, alphas, betas, factor_cols = _make_ff_known_data(model="ff3")
+
+    mu = expected_returns.ff_return(
+        returns_df,
+        factors,
+        returns_data=True,
+        model="ff3",
+        compounding=True,
+        frequency=252,
+    )
+
+    expected_period_return = (
+        factors["RF"].mean()
+        + alphas
+        + betas @ factors[factor_cols].mean().to_numpy()
+    )
+    expected = pd.Series(
+        (1 + expected_period_return) ** 252 - 1,
+        index=returns_df.columns,
+        dtype="float64",
+    )
+
+    pd.testing.assert_series_equal(mu, expected, check_exact=False, rtol=1e-10, atol=1e-12)
+
+
+def test_ff_return_ignores_extra_factor_columns():
+    prices, _, factors = _make_ff_test_data(model="ff3")
+    factors = factors.copy()
+    factors["Unused"] = 123.456
+
+    mu_with_extra = expected_returns.ff_return(prices, factors, model="ff3")
+    mu_without_extra = expected_returns.ff_return(
+        prices, factors.drop(columns=["Unused"]), model="ff3"
+    )
+
+    pd.testing.assert_series_equal(mu_with_extra, mu_without_extra)
