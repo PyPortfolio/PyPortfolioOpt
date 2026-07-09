@@ -157,6 +157,7 @@ class HRPOpt(BaseOptimizer):
                 first_variance = HRPOpt._get_cluster_var(cov, first_cluster)
                 second_variance = HRPOpt._get_cluster_var(cov, second_cluster)
                 alpha = 1 - first_variance / (first_variance + second_variance)
+                w = w.astype('float64')
                 w[first_cluster] *= alpha  # weight 1
                 w[second_cluster] *= 1 - alpha  # weight 2
         return w
