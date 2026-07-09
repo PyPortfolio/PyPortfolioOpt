@@ -299,3 +299,97 @@ def test_log_return_passthrough():
         except AssertionError:
             return
         assert False
+
+
+def test_james_stein_return():
+    df = get_data()
+    js_return = expected_returns.james_stein_return(df)
+
+    assert isinstance(js_return, pd.Series)
+    assert list(js_return.index) == list(df.columns)
+    assert js_return.notnull().all()
+    assert js_return.dtype == "float64"
+
+
+def test_james_stein_return_shrinkage():
+    df = get_data()
+
+    # With shrinkage=0 we recover the sample estimate (mean_historical_return).
+    js_return_0 = expected_returns.james_stein_return(df, shrinkage=0.0)
+    sample_mean = expected_returns.mean_historical_return(df)
+    np.testing.assert_array_almost_equal(js_return_0.values, sample_mean.values)
+
+    # With shrinkage=1 every asset collapses to the grand mean.
+    js_return_1 = expected_returns.james_stein_return(df, shrinkage=1.0)
+    assert (js_return_1 == js_return_1.iloc[0]).all()
+
+    # A manual intermediate intensity still yields a valid Series.
+    js_return_05 = expected_returns.james_stein_return(df, shrinkage=0.5)
+    assert isinstance(js_return_05, pd.Series)
+
+
+def test_james_stein_return_auto_shrinkage():
+    df = get_data()
+    js_return_auto = expected_returns.james_stein_return(df, shrinkage=None)
+    assert isinstance(js_return_auto, pd.Series)
+    assert js_return_auto.notnull().all()
+
+
+def test_james_stein_return_invalid_shrinkage():
+    df = get_data()
+    with pytest.raises(ValueError):
+        expected_returns.james_stein_return(df, shrinkage=-0.1)
+    with pytest.raises(ValueError):
+        expected_returns.james_stein_return(df, shrinkage=1.5)
+
+
+def test_james_stein_return_compounding():
+    df = get_data()
+    js_compound = expected_returns.james_stein_return(df, compounding=True)
+    js_simple = expected_returns.james_stein_return(df, compounding=False)
+    assert isinstance(js_compound, pd.Series)
+    assert isinstance(js_simple, pd.Series)
+    assert js_compound.notnull().all()
+    assert js_simple.notnull().all()
+
+
+def test_james_stein_return_frequency():
+    df = get_data()
+    js_annual = expected_returns.james_stein_return(
+        df, compounding=False, frequency=252
+    )
+    js_monthly = expected_returns.james_stein_return(
+        df, compounding=False, frequency=12
+    )
+    np.testing.assert_array_almost_equal(js_annual / 252, js_monthly / 12)
+
+
+def test_james_stein_return_with_return_model():
+    df = get_data()
+    js_direct = expected_returns.james_stein_return(df, shrinkage=0.3)
+    js_dispatch = expected_returns.return_model(
+        df, method="james_stein_return", shrinkage=0.3
+    )
+    pd.testing.assert_series_equal(js_direct, js_dispatch)
+
+
+def test_james_stein_return_data_warning():
+    df = get_data()
+    with pytest.warns(RuntimeWarning):
+        js_return = expected_returns.james_stein_return(df.to_numpy())
+        assert isinstance(js_return, pd.Series)
+
+
+def test_james_stein_return_log_returns():
+    df = get_data()
+    js_normal = expected_returns.james_stein_return(df, log_returns=False)
+    js_log = expected_returns.james_stein_return(df, log_returns=True)
+    assert not (js_normal == js_log).all()
+
+
+def test_james_stein_return_returns_data():
+    df = get_data()
+    returns = expected_returns.returns_from_prices(df)
+    js_prices = expected_returns.james_stein_return(df)
+    js_returns = expected_returns.james_stein_return(returns, returns_data=True)
+    pd.testing.assert_series_equal(js_prices, js_returns)

@@ -15,6 +15,7 @@ Currently implemented:
     - general return model function, allowing you to run any return model from one function.
     - mean historical return
     - exponentially weighted mean historical return
+    - James-Stein shrinkage estimate of returns
     - CAPM estimate of returns
 
 Additionally, we provide utility functions to convert from returns to prices and vice-versa.
@@ -104,6 +105,7 @@ def return_model(prices, method="mean_historical_return", **kwargs):
 
         - ``mean_historical_return``
         - ``ema_historical_return``
+        - ``james_stein_return``
         - ``capm_return``
 
     Raises
@@ -122,6 +124,8 @@ def return_model(prices, method="mean_historical_return", **kwargs):
         return ema_historical_return(prices, **kwargs)
     elif method == "capm_return":
         return capm_return(prices, **kwargs)
+    elif method == "james_stein_return":
+        return james_stein_return(prices, **kwargs)
     else:
         raise NotImplementedError("Return model {} not implemented".format(method))
 
@@ -221,6 +225,110 @@ def ema_historical_return(
         return (1 + returns.ewm(span=span).mean().iloc[-1]) ** frequency - 1
     else:
         return returns.ewm(span=span).mean().iloc[-1] * frequency
+
+
+def james_stein_return(
+    prices,
+    returns_data=False,
+    shrinkage=None,
+    compounding=True,
+    frequency=252,
+    log_returns=False,
+):
+    """
+    Estimate annualised expected returns using James-Stein shrinkage.
+
+    The per-asset sample estimate of expected return is shrunk towards the
+    cross-sectional (grand) mean. This reduces estimation error in the mean
+    vector, which mean-variance optimisers are notoriously sensitive to, and
+    is especially helpful when the number of assets is large relative to the
+    length of the available price history.
+
+    Parameters
+    ----------
+    prices : pd.DataFrame
+        adjusted closing prices of the asset, each row is a date
+        and each column is a ticker/id.
+    returns_data : bool, optional
+        if true, the first argument is returns instead of prices.
+        These **should not** be log returns. Defaults to False.
+    shrinkage : float, optional
+        shrinkage intensity in [0, 1]. ``0`` returns the sample estimate
+        (identical to :func:`mean_historical_return`) and ``1`` returns the
+        grand mean for every asset. If ``None`` (default), the intensity is
+        estimated from the data via a James-Stein/SURE rule.
+    compounding : bool, optional
+        computes geometric mean returns if True,
+        arithmetic otherwise. Defaults to True.
+    frequency : int, optional
+        number of time periods in a year, defaults to 252 (the number
+        of trading days in a year)
+    log_returns : bool, optional
+        whether to compute using log returns. Defaults to False.
+
+    Returns
+    -------
+    pd.Series
+        annualised James-Stein shrinkage estimate of expected returns
+
+    Raises
+    ------
+    ValueError
+        if ``shrinkage`` is supplied and is not in [0, 1]
+
+    References
+    ----------
+    Stein, C. (1956). Inadmissibility of the usual estimator for the mean of a
+    multivariate normal distribution. *Proc. Third Berkeley Symp. on Math.
+    Statist. and Prob.*, Vol. 1, 197-206.
+    """
+    if not isinstance(prices, pd.DataFrame):
+        warnings.warn("prices are not in a dataframe", RuntimeWarning)
+        prices = pd.DataFrame(prices)
+
+    if shrinkage is not None and not 0 <= shrinkage <= 1:
+        raise ValueError("shrinkage must be in [0, 1], got {}".format(shrinkage))
+
+    if returns_data:
+        returns = prices
+    else:
+        returns = returns_from_prices(prices, log_returns)
+
+    _check_returns(returns)
+
+    # Per-asset annualised expected returns: identical to mean_historical_return,
+    # so that shrinkage=0 recovers the sample estimate exactly.
+    if compounding:
+        mu = (1 + returns).prod() ** (frequency / returns.count()) - 1
+    else:
+        mu = returns.mean() * frequency
+    grand_mean = mu.mean()
+
+    if shrinkage is None:
+        # Base the James-Stein dimensionality only on assets that carry usable
+        # information. All-NaN or single-observation columns have no meaningful
+        # mean/variance and would otherwise inflate ``p`` and bias the shrinkage
+        # intensity.
+        valid = (returns.count() >= 2) & np.isfinite(mu)
+        p = int(valid.sum())
+        dispersion = float(((mu[valid] - grand_mean) ** 2).sum())
+        if p <= 2 or dispersion <= 1e-12:
+            # Degenerate case: no meaningful cross-sectional dispersion to shrink,
+            # or too few assets for the James-Stein rule. Fall back to full
+            # shrinkage when all means coincide, otherwise none.
+            shrinkage = 1.0 if dispersion <= 1e-12 else 0.0
+        else:
+            # Variance of each annualised mean estimator (~ frequency**2 * var / n),
+            # averaged across the valid assets. For the arithmetic (non-compounding)
+            # mean this frequency**2 factor cancels against the annualised
+            # dispersion, making the intensity frequency-invariant; for the
+            # geometric/compounding mean the invariance holds only approximately.
+            tau_squared = (frequency**2 * returns.var(ddof=1) / returns.count())[
+                valid
+            ].mean()
+            shrinkage = float(np.clip((p - 2) * tau_squared / dispersion, 0.0, 1.0))
+
+    return shrinkage * grand_mean + (1 - shrinkage) * mu
 
 
 def capm_return(

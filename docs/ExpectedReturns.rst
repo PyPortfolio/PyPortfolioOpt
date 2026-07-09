@@ -46,6 +46,14 @@ superior models and feed them into the optimizer.
         the mean historical return. However, if you plan on rebalancing much more frequently,
         there is a case to be made for lowering the span in order to capture recent trends.
 
+    .. autofunction:: james_stein_return
+
+        The James-Stein estimator shrinks each asset's sample mean return towards
+        the cross-sectional (grand) mean, reducing the estimation error that
+        mean-variance optimizers are so sensitive to. This is most valuable when
+        there are many assets relative to the length of the price history. The
+        shrinkage intensity can be set manually, or estimated from the data.
+
     .. autofunction:: capm_return
 
     .. autofunction:: returns_from_prices
