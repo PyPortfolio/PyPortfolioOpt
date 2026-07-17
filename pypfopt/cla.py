@@ -192,6 +192,45 @@ class CLA(BaseOptimizer):
         res = float(res[0, 0])
         return res, bi
 
+    @staticmethod
+    def _invert_covar_free(covarF):
+        """
+        Invert the covariance submatrix of the currently free assets.
+
+        The critical line algorithm requires this submatrix to be invertible. A
+        singular covariance matrix – e.g. one containing perfectly correlated or
+        duplicated assets, or estimated from fewer observations than assets – can
+        make it singular, in which case numpy raises a bare ``LinAlgError`` from
+        deep inside the algorithm. Translate it into an actionable error instead.
+
+        Parameters
+        ----------
+        covarF : np.ndarray
+            covariance submatrix of the free assets
+
+        Raises
+        ------
+        ValueError
+            if the submatrix is singular
+
+        Returns
+        -------
+        np.ndarray
+            inverse of ``covarF``
+        """
+        try:
+            return np.linalg.inv(covarF)
+        except np.linalg.LinAlgError:
+            raise ValueError(
+                "The covariance matrix is singular, so the critical line algorithm "
+                "cannot invert it. This usually means some assets are perfectly "
+                "correlated or duplicated, or that the covariance matrix was "
+                "estimated from fewer observations than there are assets. Consider "
+                "removing redundant assets, or using a shrinkage estimator such as "
+                "risk_models.CovarianceShrinkage, which returns a positive definite "
+                "matrix."
+            ) from None
+
     def _get_matrices(self, f):
         # Slice covarF,covarFB,covarB,meanF,meanB,wF,wB
         covarF = self._reduce_matrix(self.cov_matrix, f, f)
@@ -339,7 +378,7 @@ class CLA(BaseOptimizer):
             l_in = None
             if len(f) > 1:
                 covarF, covarFB, meanF, wB = self._get_matrices(f)
-                covarF_inv = np.linalg.inv(covarF)
+                covarF_inv = self._invert_covar_free(covarF)
                 j = 0
                 for i in f:
                     lam, bi = self._compute_lambda(
@@ -354,7 +393,7 @@ class CLA(BaseOptimizer):
                 b = self._get_b(f)
                 for i in b:
                     covarF, covarFB, meanF, wB = self._get_matrices(f + [i])
-                    covarF_inv = np.linalg.inv(covarF)
+                    covarF_inv = self._invert_covar_free(covarF)
                     lam, bi = self._compute_lambda(
                         covarF_inv,
                         covarFB,
@@ -371,7 +410,7 @@ class CLA(BaseOptimizer):
                 # 3) compute minimum variance solution
                 self.ls.append(0)
                 covarF, covarFB, meanF, wB = self._get_matrices(f)
-                covarF_inv = np.linalg.inv(covarF)
+                covarF_inv = self._invert_covar_free(covarF)
                 meanF = np.zeros(meanF.shape)
             else:
                 # 4) decide lambda
@@ -383,7 +422,7 @@ class CLA(BaseOptimizer):
                     self.ls.append(l_out)
                     f.append(i_out)
                 covarF, covarFB, meanF, wB = self._get_matrices(f)
-                covarF_inv = np.linalg.inv(covarF)
+                covarF_inv = self._invert_covar_free(covarF)
             # 5) compute solution vector
             wF, g = self._compute_w(covarF_inv, covarFB, meanF, wB)
             for i in range(len(f)):

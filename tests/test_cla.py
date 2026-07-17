@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pypfopt import risk_models
+from pypfopt import expected_returns, risk_models
 from pypfopt.cla import CLA
 from tests.utilities_for_tests import get_data, setup_cla
 
@@ -94,6 +94,42 @@ def test_cla_two_assets():
     mu = np.array([[0.02569294], [0.16203987]])
     cov = np.array([[0.0012765, -0.00212724], [-0.00212724, 0.01616983]])
     assert CLA(mu, cov)
+
+
+def test_cla_singular_covariance_raises():
+    # Perfectly correlated assets give a positive semidefinite but singular
+    # covariance matrix, which CLA cannot invert. The user should get an
+    # actionable error rather than a bare numpy LinAlgError.
+    mu = np.array([0.1, 0.2])
+    cov = np.array([[0.01, 0.01], [0.01, 0.01]])
+
+    for method in ("max_sharpe", "min_volatility", "efficient_frontier"):
+        with pytest.raises(ValueError, match="cannot invert") as e:
+            getattr(CLA(mu, cov), method)()
+        # np.linalg.LinAlgError subclasses ValueError, so assert explicitly that
+        # the raw numpy error is not what surfaces to the user.
+        assert not isinstance(e.value, np.linalg.LinAlgError)
+
+
+def test_cla_singular_covariance_fixed_by_shrinkage():
+    # The remedy suggested by the error message should actually work: shrinkage
+    # returns a positive definite matrix, which CLA can handle.
+    df = get_data()
+    # duplicate a column to make the sample covariance singular
+    df = df.iloc[:, :3].copy()
+    df[df.columns[1]] = df[df.columns[0]]
+    mu = expected_returns.mean_historical_return(df)
+
+    sample_cov = risk_models.sample_cov(df)
+    assert np.min(np.linalg.eigvalsh(sample_cov)) < 1e-12
+    with pytest.raises(ValueError, match="cannot invert"):
+        CLA(mu, sample_cov).min_volatility()
+
+    shrunk_cov = risk_models.CovarianceShrinkage(df).ledoit_wolf()
+    assert np.min(np.linalg.eigvalsh(shrunk_cov)) > 0
+    w = CLA(mu, shrunk_cov).min_volatility()
+    assert len(w) == 3
+    np.testing.assert_almost_equal(sum(w.values()), 1)
 
 
 def test_cla_max_sharpe_semicovariance():
