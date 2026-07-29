@@ -78,3 +78,26 @@ def test_quasi_dag():
     hrp.optimize(linkage_method="single")
     clusters = hrp.clusters
     assert HRPOpt._get_quasi_diag(clusters)[:5] == [12, 6, 15, 14, 2]
+
+
+def test_hrp_linkage_methods():
+    # optimize() used to validate linkage_method against the private attribute
+    # sch._LINKAGE_METHODS, which scipy 1.18 removed, so every call raised
+    # AttributeError. scipy exposes no public list of linkage methods, so the
+    # seven documented by scipy.cluster.hierarchy.linkage are pinned here.
+    df = get_data()
+    returns = df.pct_change().dropna(how="all")
+    methods = [
+        "single",
+        "complete",
+        "average",
+        "weighted",
+        "centroid",
+        "median",
+        "ward",
+    ]
+    for method in methods:
+        hrp = HRPOpt(returns)
+        w = hrp.optimize(linkage_method=method)
+        assert set(w.keys()) == set(returns.columns)
+        np.testing.assert_almost_equal(sum(w.values()), 1)
