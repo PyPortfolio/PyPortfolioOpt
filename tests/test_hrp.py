@@ -21,6 +21,21 @@ def test_hrp_errors():
         hrp.optimize(linkage_method="blah")
 
 
+@pytest.mark.parametrize(
+    "linkage_method",
+    ["single", "complete", "average", "weighted", "centroid", "median", "ward"],
+)
+def test_hrp_linkage_methods(linkage_method):
+    df = get_data()
+    returns = df.pct_change().dropna(how="all")
+    hrp = HRPOpt(returns)
+
+    weights = hrp.optimize(linkage_method=linkage_method)
+
+    assert isinstance(weights, dict)
+    np.testing.assert_almost_equal(sum(weights.values()), 1)
+
+
 def test_hrp_portfolio():
     df = get_data()
     returns = df.pct_change().dropna(how="all")
