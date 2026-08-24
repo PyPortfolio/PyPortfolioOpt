@@ -238,7 +238,7 @@ def ex_ante_tracking_error(w, cov_matrix, benchmark_weights):
         value of the objective function OR objective function expression
     """
     relative_weights = w - benchmark_weights
-    tracking_error = cp.quad_form(relative_weights, cov_matrix)
+    tracking_error = cp.quad_form(relative_weights, cov_matrix, assume_PSD=True)
     return _objective_value(w, tracking_error)
 
 

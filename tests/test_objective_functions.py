@@ -116,6 +116,25 @@ def test_ex_ante_tracking_error():
     np.testing.assert_almost_equal(te, 0.028297778946639436)
 
 
+def test_ex_ante_tracking_error_assumes_psd():
+    # ex_ante_tracking_error is the only quad_form-based objective in this
+    # module that didn't pass assume_PSD=True (unlike portfolio_variance,
+    # sharpe_ratio and quadratic_utility), even though cov_matrix is
+    # documented/used the same way as those. Passing assume_PSD=True skips
+    # cvxpy's own PSD-certification check, which is known to fail for
+    # legitimately PSD-but-ill-conditioned covariance matrices on some
+    # cvxpy/solver versions (see #631 for a user-reported case with a custom
+    # quad_form-based objective). This just checks the numeric result is
+    # unchanged for a well-conditioned matrix, i.e. the fix is behavior
+    # preserving in the normal case.
+    bm_w = np.ones(5) / 5
+    w = np.array([0.4, 0.4, 0, 0, 0])
+    S = pd.DataFrame(np.eye(5))
+
+    te = objective_functions.ex_ante_tracking_error(w, S, bm_w)
+    np.testing.assert_almost_equal(te, 0.2)
+
+
 def test_ex_post_tracking_error():
     df = get_data()
     rets = returns_from_prices(df).dropna()
