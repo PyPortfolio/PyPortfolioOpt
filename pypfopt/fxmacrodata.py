@@ -9,7 +9,7 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
-FXMACRODATA_BASE_URL = "https://fxmacrodata.com/api/v1"
+FXMACRODATA_BASE_URL = "https://api.fxmacrodata.com/v1"
 FXMACRODATA_API_KEY_ENV_VARS = ("FXMACRODATA_API_KEY", "FXMD_API_KEY")
 FXMACRODATA_ENDPOINTS = {
     "data_catalogue": (
