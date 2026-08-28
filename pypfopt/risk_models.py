@@ -17,6 +17,7 @@ The format of the data input is the same as that in :ref:`expected-returns`.
     - manual shrinkage
     - Ledoit Wolf shrinkage
     - Oracle Approximating shrinkage
+    - Analytical Nonlinear shrinkage (Ledoit and Wolf, 2020)
 
 - covariance to correlation matrix
 """
@@ -136,6 +137,7 @@ def risk_matrix(prices, method="sample_cov", **kwargs):
         - ``ledoit_wolf_single_factor``
         - ``ledoit_wolf_constant_correlation``
         - ``oracle_approximating``
+        - ``analytical_nonlinear_shrinkage``
 
     Raises
     ------
@@ -165,6 +167,8 @@ def risk_matrix(prices, method="sample_cov", **kwargs):
         )
     elif method == "oracle_approximating":
         return CovarianceShrinkage(prices, **kwargs).oracle_approximating()
+    elif method == "analytical_nonlinear_shrinkage":
+        return CovarianceShrinkage(prices, **kwargs).analytical_nonlinear_shrinkage()
     else:
         raise NotImplementedError("Risk model {} not implemented".format(method))
 
@@ -665,4 +669,81 @@ class CovarianceShrinkage:
         """
         X = np.nan_to_num(self.X.values)
         shrunk_cov, self.delta = self.covariance.oas(X)
+        return self._format_and_annualize(shrunk_cov)
+
+    def analytical_nonlinear_shrinkage(self):
+        """
+        Nonlinear shrinkage estimator from Ledoit and Wolf (2020).
+
+        The standard sample covariance matrix is a bad estimator when you have
+        many assets relative to your history length -- it systematically blows up
+        the large eigenvalues and squashes the small ones. This method corrects
+        each eigenvalue individually using a closed-form formula derived from
+        random matrix theory, rather than applying one global shrinkage intensity
+        like ledoit_wolf() does.
+
+        Reference: Ledoit, O. and Wolf, M. (2020). Analytical Nonlinear Shrinkage
+        of Large-Dimensional Covariance Matrices. Annals of Statistics, 48(5).
+        The algorithm here follows the 7-step summary in Section 4.7.
+
+        :raises ValueError: if you have more assets than observations (p >= n),
+            since the sample covariance is singular and the formula breaks down.
+        :return: annualised shrunk covariance matrix
+        :rtype: pd.DataFrame
+        """
+        n, p = self.X.shape
+
+        if p >= n:
+            raise ValueError(
+                f"Need more observations than assets (p < n), but got "
+                f"p={p} and n={n}. Either use fewer assets or a longer lookback."
+            )
+
+        # Decompose the sample covariance: S = U * diag(lam) * U.T
+        # eigh is used instead of eig because S is symmetric -- gives real,
+        # sorted eigenvalues and is numerically more stable.
+        lam, u = np.linalg.eigh(self.S)
+
+        # Global bandwidth (Eq. 4.4). n^(-1/3) is the theoretically optimal
+        # choice for this kernel in the large-dimensional limit.
+        h = n ** (-1.0 / 3.0)
+
+        # Each eigenvalue gets its own bandwidth proportional to its size (Eq. 4.5).
+        # This is what makes the kernel locally adaptive -- small eigenvalues
+        # get a finer window, large ones a coarser window.
+        h_loc = lam * h
+
+        # Build the (p x p) matrix of standardised distances.
+        # u_mat[i, j] = (lam[i] - lam[j]) / h_loc[j]
+        u_mat = (lam[:, np.newaxis] - lam[np.newaxis, :]) / h_loc[np.newaxis, :]
+
+        # Epanechnikov kernel: k(u) = 0.75*(1 - u^2) for |u| <= 1, else 0.
+        epan = np.where(np.abs(u_mat) <= 1.0, 0.75 * (1.0 - u_mat ** 2), 0.0)
+        f_tilde = np.mean(epan / h_loc[np.newaxis, :], axis=1)
+
+        # Hilbert transform of the KDE (Proposition 4.1).
+        # The log blows up at the kernel boundary |u|=1, but the full expression
+        # has a finite limit there -- we just zero out any non-finite values.
+        with np.errstate(divide="ignore", invalid="ignore"):
+            log_term = 0.5 * (1.0 - u_mat ** 2) * np.log(
+                np.abs((1.0 + u_mat) / (1.0 - u_mat))
+            )
+        log_term = np.where(np.isfinite(log_term), log_term, 0.0)
+        hf_tilde = np.mean(
+            (3.0 / (4.0 * np.pi)) * (log_term + u_mat) / h_loc[np.newaxis, :], axis=1
+        )
+
+        # The shrinkage formula (Section 4.7).
+        # c = p/n is the concentration ratio -- the closer it is to 1, the harder
+        # the correction needs to be.
+        c = p / n
+        d_tilde = lam / (
+            (np.pi * c * lam * f_tilde) ** 2
+            + (1.0 - c - np.pi * c * lam * hf_tilde) ** 2
+        )
+
+        # Reconstruct and symmetrise to clean up any floating-point drift.
+        shrunk_cov = u @ np.diag(d_tilde) @ u.T
+        shrunk_cov = (shrunk_cov + shrunk_cov.T) / 2.0
+
         return self._format_and_annualize(shrunk_cov)

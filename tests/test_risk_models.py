@@ -310,6 +310,30 @@ def test_oracle_approximating():
     assert risk_models._is_positive_semidefinite(shrunk_cov)
 
 
+def test_analytical_nonlinear_shrinkage():
+    df = get_data()
+    cs = risk_models.CovarianceShrinkage(df)
+    shrunk_cov = cs.analytical_nonlinear_shrinkage()
+    assert shrunk_cov.shape == (20, 20)
+    assert list(shrunk_cov.index) == list(df.columns)
+    assert list(shrunk_cov.columns) == list(df.columns)
+    assert not shrunk_cov.isnull().any().any()
+    assert risk_models._is_positive_semidefinite(shrunk_cov)
+    # make sure the correction actually did something
+    assert not np.allclose(shrunk_cov.values, risk_models.sample_cov(df).values)
+
+
+def test_analytical_nonlinear_shrinkage_singular_raises():
+    # more assets than observations -- formula breaks down, should raise
+    np.random.seed(0)
+    prices = pd.DataFrame(
+        np.random.randn(5, 20).cumsum(axis=0) + 100,
+        columns=[f"Asset{i}" for i in range(20)],
+    )
+    with pytest.raises(ValueError, match="p < n"):
+        risk_models.CovarianceShrinkage(prices).analytical_nonlinear_shrinkage()
+
+
 def test_risk_matrix_and_returns_data():
     # Test the switcher method for simple calls
     df = get_data()
@@ -323,6 +347,7 @@ def test_risk_matrix_and_returns_data():
         "ledoit_wolf_single_factor",
         "ledoit_wolf_constant_correlation",
         "oracle_approximating",
+        "analytical_nonlinear_shrinkage",
     }:
         S = risk_models.risk_matrix(df, method=method)
         assert S.shape == (20, 20)
