@@ -17,7 +17,7 @@ I care a lot about having a clean API, so I am unlikely to accept a random PR th
 
 ### Code style
 
-For this project I have used [Black](https://github.com/ambv/black) as the formatting standard, with all of the default arguments. I recommend that PRs use black.
+This project uses [ruff](https://github.com/astral-sh/ruff) for linting and formatting, enforced via pre-commit. Before submitting a PR, run `make fmt` (or `pre-commit run --all-files`) to apply the same checks used in CI.
 
 ### Testing
 
@@ -28,6 +28,10 @@ Any contributions **must** be accompanied by unit tests (written with `pytest`).
 Inline comments (and docstrings!) are great when needed, but don't go overboard. A lot of the explanation can and should be offloaded to ReadTheDocs. Docstrings should follow [PEP257](https://stackoverflow.com/questions/2557110/what-to-put-in-a-python-module-docstring) semantically and sphinx syntactically.
 
 I would appreciate if changes are accompanied by relevant documentation – it doesn't have to be pretty, because I will probably try to tidy it up before it goes onto ReadTheDocs, but it'd make things a lot simpler to have the person who wrote the code explain it in their own words.
+
+## Community
+
+PyPortfolioOpt is part of the [GC.OS](https://gc-os-ai.github.io/) umbrella maintenance model. For general chat, dev discussion, or just to say hello, join the [GC.OS Discord](https://discord.gg/7uKdHfdcJG) and head to the [PyPortfolioOpt channel](https://discord.com/channels/1390583813414981755/1436760376216781091).
 
 ## Questions
 
