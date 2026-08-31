@@ -176,9 +176,6 @@ class HRPOpt(BaseOptimizer):
         OrderedDict
             weights for the HRP portfolio
         """
-        if linkage_method not in sch._LINKAGE_METHODS:
-            raise ValueError("linkage_method must be one recognised by scipy")
-
         if self.returns is None:
             cov = self.cov_matrix
             corr = cov_to_corr(self.cov_matrix).round(6)
