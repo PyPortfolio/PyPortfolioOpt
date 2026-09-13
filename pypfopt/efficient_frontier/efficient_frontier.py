@@ -3,6 +3,7 @@ The ``efficient_frontier`` submodule houses the EfficientFrontier class, which g
 classical mean-variance optimal portfolios for a variety of objectives and constraints
 """
 
+from typing import Any
 import warnings
 
 import cvxpy as cp
@@ -56,13 +57,13 @@ class EfficientFrontier(BaseConvexOptimizer):
 
     def __init__(
         self,
-        expected_returns,
-        cov_matrix,
-        weight_bounds=(0, 1),
-        solver=None,
-        verbose=False,
-        solver_options=None,
-    ):
+        expected_returns: pd.Series | list | np.ndarray | None,
+        cov_matrix: pd.DataFrame | np.ndarray,
+        weight_bounds: tuple | list = (0, 1),
+        solver: str | None = None,
+        verbose: bool = False,
+        solver_options: dict[str, Any] | None = None,
+    ) -> None:
         """
         Parameters
         ----------
@@ -89,29 +90,19 @@ class EfficientFrontier(BaseConvexOptimizer):
             if ``expected_returns`` is not a series, list or array
         TypeError
             if ``cov_matrix`` is not a dataframe or array
+
+        Notes
+        -----
+        Asset labels are aligned automatically only when ``expected_returns`` is a
+        Series and ``cov_matrix`` is a DataFrame. When pandas and array-like inputs
+        are mixed, their values are matched positionally, so they must use the same
+        asset order.
         """
-        # Inputs
-        self.cov_matrix = self._validate_cov_matrix(cov_matrix)
-        self.expected_returns = self._validate_expected_returns(expected_returns)
+        self.expected_returns, self.cov_matrix, tickers = (
+            self._validate_and_format_inputs(expected_returns, cov_matrix)
+        )
         self._max_return_value = None
         self._market_neutral = None
-
-        if self.expected_returns is None:
-            num_assets = len(cov_matrix)
-        else:
-            num_assets = len(expected_returns)
-
-        # Labels
-        if isinstance(expected_returns, pd.Series):
-            tickers = list(expected_returns.index)
-        elif isinstance(cov_matrix, pd.DataFrame):
-            tickers = list(cov_matrix.columns)
-        else:  # use integer labels
-            tickers = list(range(num_assets))
-
-        if expected_returns is not None and cov_matrix is not None:
-            if cov_matrix.shape != (num_assets, num_assets):
-                raise ValueError("Covariance matrix does not match expected returns")
 
         super().__init__(
             len(tickers),
@@ -123,28 +114,84 @@ class EfficientFrontier(BaseConvexOptimizer):
         )
 
     @staticmethod
-    def _validate_expected_returns(expected_returns):
-        if expected_returns is None:
-            return None
-        elif isinstance(expected_returns, pd.Series):
-            return expected_returns.values
-        elif isinstance(expected_returns, list):
-            return np.array(expected_returns)
-        elif isinstance(expected_returns, np.ndarray):
-            return expected_returns.ravel()
+    def _validate_and_format_inputs(
+        expected_returns: pd.Series | list | np.ndarray | None,
+        cov_matrix: pd.DataFrame | np.ndarray | None,
+    ) -> tuple[np.ndarray | None, np.ndarray, list[Any]]:
+        """Validate inputs and align labeled data to a common asset order."""
+        cov_array, cov_tickers = EfficientFrontier._validate_and_format_cov_matrix(
+            cov_matrix
+        )
+        expected_array, expected_tickers = (
+            EfficientFrontier._validate_and_format_expected_returns(expected_returns)
+        )
+
+        if expected_array is not None and cov_array.shape[0] != len(expected_array):
+            raise ValueError("Covariance matrix does not match expected returns")
+
+        # Labeled pandas inputs can be aligned safely. Mixed pandas/array inputs
+        # remain positional because their alignment cannot be verified.
+        if expected_tickers is not None and cov_tickers is not None:
+            labels_match = (
+                expected_tickers.is_unique
+                and expected_tickers.isin(cov_tickers).all()
+            )
+            if not labels_match:
+                raise ValueError(
+                    "Covariance matrix labels do not match expected returns"
+                )
+            # Reorder both covariance axes to match the expected-return order.
+            positions = cov_tickers.get_indexer(expected_tickers)
+            cov_array = cov_array[np.ix_(positions, positions)]
+
+        if expected_tickers is not None:
+            tickers = list(expected_tickers)
+        elif cov_tickers is not None:
+            tickers = list(cov_tickers)
         else:
-            raise TypeError("expected_returns is not a series, list or array")
+            tickers = list(range(cov_array.shape[0]))
+
+        return expected_array, cov_array, tickers
 
     @staticmethod
-    def _validate_cov_matrix(cov_matrix):
+    def _validate_and_format_cov_matrix(
+        cov_matrix: pd.DataFrame | np.ndarray | None,
+    ) -> tuple[np.ndarray, pd.Index | None]:
+        """Validate a covariance matrix and normalize DataFrame row order."""
         if cov_matrix is None:
             raise ValueError("cov_matrix must be provided")
-        elif isinstance(cov_matrix, pd.DataFrame):
-            return cov_matrix.values
-        elif isinstance(cov_matrix, np.ndarray):
-            return cov_matrix
-        else:
+        if not isinstance(cov_matrix, (pd.DataFrame, np.ndarray)):
             raise TypeError("cov_matrix is not a dataframe or array")
+        if cov_matrix.ndim != 2 or cov_matrix.shape[0] != cov_matrix.shape[1]:
+            raise ValueError("cov_matrix must be a square matrix")
+
+        if isinstance(cov_matrix, np.ndarray):
+            return cov_matrix, None
+        if not cov_matrix.index.is_unique or not cov_matrix.columns.is_unique:
+            raise ValueError("Covariance matrix labels must be unique")
+        if not cov_matrix.index.isin(cov_matrix.columns).all():
+            raise ValueError(
+                "Covariance matrix index and columns must contain the same labels"
+            )
+
+        cov_tickers = cov_matrix.columns
+        cov_array = cov_matrix.loc[cov_tickers, cov_tickers].values
+        return cov_array, cov_tickers
+
+    @staticmethod
+    def _validate_and_format_expected_returns(
+        expected_returns: pd.Series | list | np.ndarray | None,
+    ) -> tuple[np.ndarray | None, pd.Index | None]:
+        """Convert expected returns to a flat array and preserve Series labels."""
+        if expected_returns is None:
+            return None, None
+        if isinstance(expected_returns, pd.Series):
+            return expected_returns.values, expected_returns.index
+        if isinstance(expected_returns, list):
+            return np.array(expected_returns), None
+        if isinstance(expected_returns, np.ndarray):
+            return expected_returns.ravel(), None
+        raise TypeError("expected_returns is not a series, list or array")
 
     def _validate_returns(self, returns):
         """
@@ -217,7 +264,7 @@ class EfficientFrontier(BaseConvexOptimizer):
         Returns
         -------
         OrderedDict
-            asset weights for the return-minimising portfolio
+            asset weights for the return-maximising portfolio
         """
         if self.expected_returns is None:
             raise ValueError("no expected returns provided")
@@ -232,16 +279,17 @@ class EfficientFrontier(BaseConvexOptimizer):
 
         if return_value:
             return -self._opt.value
-        else:
-            return res
+        return res
 
     def max_sharpe(self, risk_free_rate=0.0):
         """
-        Maximise the Sharpe Ratio. The result is also referred to as the tangency portfolio,
-        as it is the portfolio for which the capital market line is tangent to the efficient frontier.
+        Maximise the Sharpe Ratio. The result is also referred to as the tangency
+        portfolio, as it is the portfolio for which the capital market line is tangent
+        to the efficient frontier.
 
-        This is a convex optimization problem after making a certain variable substitution. See
-        `Cornuejols and Tutuncu (2006) <http://web.math.ku.dk/~rolf/CT_FinOpt.pdf>`_ for more.
+        This is a convex optimization problem after making a certain variable
+        substitution. See `Cornuejols and Tutuncu (2006)
+        <http://web.math.ku.dk/~rolf/CT_FinOpt.pdf>`_ for more.
 
         Parameters
         ----------
@@ -265,7 +313,8 @@ class EfficientFrontier(BaseConvexOptimizer):
 
         if max(self.expected_returns) <= risk_free_rate:
             raise ValueError(
-                "at least one of the assets must have an expected return exceeding the risk-free rate"
+                "at least one of the assets must have an expected return exceeding "
+                "the risk-free rate"
             )
 
         self._risk_free_rate = risk_free_rate
@@ -277,9 +326,10 @@ class EfficientFrontier(BaseConvexOptimizer):
 
         # Note: objectives are not scaled by k. Hence there are subtle differences
         # between how these objectives work for max_sharpe vs min_volatility
-        if len(self._additional_objectives) > 0:
+        if self._additional_objectives:
             warnings.warn(
-                "max_sharpe transforms the optimization problem so additional objectives may not work as expected."
+                "max_sharpe transforms the optimization problem so additional "
+                "objectives may not work as expected."
             )
         for obj in self._additional_objectives:
             self._objective += obj
@@ -375,8 +425,6 @@ class EfficientFrontier(BaseConvexOptimizer):
             if ``target_volatility`` is not a positive float
         ValueError
             if no portfolio can be found with volatility equal to ``target_volatility``
-        ValueError
-            if ``risk_free_rate`` is non-numeric
 
         Returns
         -------
@@ -390,9 +438,8 @@ class EfficientFrontier(BaseConvexOptimizer):
 
         if target_volatility < global_min_volatility:
             raise ValueError(
-                "The minimum volatility is {:.3f}. Please use a higher target_volatility".format(
-                    global_min_volatility
-                )
+                f"The minimum volatility is {global_min_volatility:.3f}. "
+                "Please use a higher target_volatility"
             )
 
         update_existing_parameter = self.is_parameter_defined("target_variance")
@@ -441,9 +488,9 @@ class EfficientFrontier(BaseConvexOptimizer):
         """
         if not isinstance(target_return, float):
             raise ValueError("target_return should be a float")
-        if not self._max_return_value:
+        if self._max_return_value is None:
             a = self.deepcopy()
-            self._max_return_value = a._max_return()
+            self._max_return_value = a._max_return()  # pylint: disable=protected-access
         if target_return > self._max_return_value:
             raise ValueError(
                 "target_return must be lower than the maximum possible return"

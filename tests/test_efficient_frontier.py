@@ -82,6 +82,205 @@ def test_efficient_frontier_expected_returns_list():
     )
 
 
+class TestValidateAndFormatExpectedReturns:
+    # Direct access is intentional: these tests define the private helper's contract.
+    # pylint: disable=protected-access
+
+    def test_accepts_none(self):
+        formatted_returns, tickers = (
+            EfficientFrontier._validate_and_format_expected_returns(None)
+        )
+
+        assert formatted_returns is None
+        assert tickers is None
+
+    def test_converts_list_to_array(self):
+        formatted_returns, tickers = (
+            EfficientFrontier._validate_and_format_expected_returns([0.1, 0.2])
+        )
+
+        np.testing.assert_array_equal(formatted_returns, np.array([0.1, 0.2]))
+        assert tickers is None
+
+    def test_flattens_numpy_array(self):
+        formatted_returns, tickers = (
+            EfficientFrontier._validate_and_format_expected_returns(
+                np.array([[0.1, 0.2]])
+            )
+        )
+
+        np.testing.assert_array_equal(formatted_returns, np.array([0.1, 0.2]))
+        assert tickers is None
+
+    def test_extracts_series_values_and_tickers(self):
+        returns_series = pd.Series([0.1, 0.2], index=["A", "B"])
+
+        formatted_returns, tickers = (
+            EfficientFrontier._validate_and_format_expected_returns(returns_series)
+        )
+
+        np.testing.assert_array_equal(formatted_returns, np.array([0.1, 0.2]))
+        pd.testing.assert_index_equal(tickers, pd.Index(["A", "B"]))
+
+    def test_rejects_unsupported_type(self):
+        with pytest.raises(
+            TypeError, match="expected_returns is not a series, list or array"
+        ):
+            EfficientFrontier._validate_and_format_expected_returns(0.02)
+
+
+class TestValidateAndFormatCovMatrix:
+    # Direct access is intentional: these tests define the private helper's contract.
+    # pylint: disable=protected-access
+
+    def test_accepts_numpy_array_without_tickers(self):
+        cov_matrix = np.array([[0.1, 0.2], [0.3, 0.4]])
+
+        formatted_matrix, tickers = (
+            EfficientFrontier._validate_and_format_cov_matrix(cov_matrix)
+        )
+
+        assert formatted_matrix is cov_matrix
+        assert tickers is None
+
+    def test_aligns_dataframe_rows_to_column_order(self):
+        cov_matrix = pd.DataFrame(
+            [[0.3, 0.4], [0.1, 0.2]],
+            index=["B", "A"],
+            columns=["A", "B"],
+        )
+
+        formatted_matrix, tickers = (
+            EfficientFrontier._validate_and_format_cov_matrix(cov_matrix)
+        )
+
+        np.testing.assert_array_equal(
+            formatted_matrix, np.array([[0.1, 0.2], [0.3, 0.4]])
+        )
+        pd.testing.assert_index_equal(tickers, pd.Index(["A", "B"]))
+
+    def test_rejects_none(self):
+        with pytest.raises(ValueError, match="cov_matrix must be provided"):
+            EfficientFrontier._validate_and_format_cov_matrix(None)
+
+    def test_rejects_unsupported_type(self):
+        with pytest.raises(
+            TypeError, match="cov_matrix is not a dataframe or array"
+        ):
+            EfficientFrontier._validate_and_format_cov_matrix(0.01)
+
+    def test_rejects_one_dimensional_array(self):
+        with pytest.raises(ValueError, match="cov_matrix must be a square matrix"):
+            EfficientFrontier._validate_and_format_cov_matrix(np.ones(2))
+
+    @pytest.mark.parametrize(
+        "cov_matrix",
+        [np.ones((2, 3)), pd.DataFrame(np.ones((2, 3)))],
+    )
+    def test_rejects_non_square_matrix(self, cov_matrix):
+        with pytest.raises(ValueError, match="cov_matrix must be a square matrix"):
+            EfficientFrontier._validate_and_format_cov_matrix(cov_matrix)
+
+    @pytest.mark.parametrize(
+        "index, columns",
+        [
+            (["A", "A"], ["A", "B"]),
+            (["A", "B"], ["A", "A"]),
+        ],
+    )
+    def test_rejects_duplicate_dataframe_labels(self, index, columns):
+        cov_matrix = pd.DataFrame(np.eye(2), index=index, columns=columns)
+
+        with pytest.raises(ValueError, match="Covariance matrix labels must be unique"):
+            EfficientFrontier._validate_and_format_cov_matrix(cov_matrix)
+
+    def test_rejects_different_dataframe_axis_labels(self):
+        cov_matrix = pd.DataFrame(
+            np.eye(2), index=["A", "B"], columns=["A", "C"]
+        )
+
+        with pytest.raises(ValueError, match="must contain the same labels"):
+            EfficientFrontier._validate_and_format_cov_matrix(cov_matrix)
+
+
+class TestValidateAndFormatInputs:
+    # Direct access is intentional: these tests define the private helper's contract.
+    # pylint: disable=protected-access
+
+    def test_aligns_covariance_to_expected_return_order(self):
+        expected_returns = pd.Series([0.2, 0.1], index=["B", "A"])
+        cov_matrix = pd.DataFrame(
+            [[0.1, 0.2], [0.3, 0.4]],
+            index=["A", "B"],
+            columns=["A", "B"],
+        )
+
+        formatted_returns, formatted_covariance, tickers = (
+            EfficientFrontier._validate_and_format_inputs(
+                expected_returns, cov_matrix
+            )
+        )
+
+        np.testing.assert_array_equal(formatted_returns, np.array([0.2, 0.1]))
+        np.testing.assert_array_equal(
+            formatted_covariance, np.array([[0.4, 0.3], [0.2, 0.1]])
+        )
+        assert tickers == ["B", "A"]
+
+    def test_uses_expected_return_tickers_with_array_covariance(self):
+        expected_returns = pd.Series([0.1, 0.2], index=["A", "B"])
+
+        _, _, tickers = EfficientFrontier._validate_and_format_inputs(
+            expected_returns, np.eye(2)
+        )
+
+        assert tickers == ["A", "B"]
+
+    def test_uses_covariance_tickers_without_expected_returns(self):
+        cov_matrix = pd.DataFrame(
+            np.eye(2), index=["A", "B"], columns=["A", "B"]
+        )
+
+        _, _, tickers = EfficientFrontier._validate_and_format_inputs(None, cov_matrix)
+
+        assert tickers == ["A", "B"]
+
+    def test_uses_positional_tickers_for_array_inputs(self):
+        _, _, tickers = EfficientFrontier._validate_and_format_inputs(
+            np.array([0.1, 0.2]), np.eye(2)
+        )
+
+        assert tickers == [0, 1]
+
+    def test_rejects_dimension_mismatch(self):
+        with pytest.raises(ValueError, match="does not match expected returns"):
+            EfficientFrontier._validate_and_format_inputs(
+                np.array([0.1, 0.2, 0.3]), np.eye(2)
+            )
+
+    def test_rejects_different_labels(self):
+        expected_returns = pd.Series([0.1, 0.2], index=["A", "C"])
+        cov_matrix = pd.DataFrame(
+            np.eye(2), index=["A", "B"], columns=["A", "B"]
+        )
+
+        with pytest.raises(ValueError, match="labels do not match expected returns"):
+            EfficientFrontier._validate_and_format_inputs(
+                expected_returns, cov_matrix
+            )
+
+    def test_rejects_duplicate_expected_return_labels(self):
+        expected_returns = pd.Series([0.1, 0.2], index=["A", "A"])
+        cov_matrix = pd.DataFrame(
+            np.eye(2), index=["A", "B"], columns=["A", "B"]
+        )
+
+        with pytest.raises(ValueError, match="labels do not match expected returns"):
+            EfficientFrontier._validate_and_format_inputs(
+                expected_returns, cov_matrix
+            )
+
+
 def test_portfolio_performance():
     ef = setup_efficient_frontier()
     with pytest.raises(ValueError):
@@ -105,6 +304,53 @@ def test_min_volatility():
         ef.portfolio_performance(risk_free_rate=0.02),
         (0.15056821399482578, 0.15915084514118694, 0.8204054077060996),
     )
+
+
+def test_min_volatility_aligns_covariance_labels():
+    mean_returns = pd.Series({"A": 0.1, "B": 0.2})
+    cov_matrix = pd.DataFrame(
+        [[0.01, 0.0], [0.0, 1.0]],
+        index=["A", "B"],
+        columns=["A", "B"],
+    )
+
+    expected = EfficientFrontier(mean_returns, cov_matrix).min_volatility()
+    reordered_cov = cov_matrix.loc[["B", "A"], ["B", "A"]]
+    actual = EfficientFrontier(mean_returns, reordered_cov).min_volatility()
+
+    pd.testing.assert_series_equal(
+        pd.Series(actual), pd.Series(expected), check_names=False
+    )
+
+
+def test_covariance_dataframe_aligns_index_to_columns():
+    cov_matrix = pd.DataFrame(
+        [[0.01, 0.002], [0.002, 1.0]],
+        index=["A", "B"],
+        columns=["A", "B"],
+    )
+    reordered_index = cov_matrix.loc[["B", "A"]]
+
+    ef = EfficientFrontier(None, reordered_index)
+
+    assert ef.tickers == ["A", "B"]
+    np.testing.assert_array_equal(ef.cov_matrix, cov_matrix.values)
+
+
+@pytest.mark.parametrize(
+    "mean_returns",
+    [pd.Series({"A": 0.1, "B": 0.2, "C": 0.3}), np.array([0.1, 0.2, 0.3])],
+)
+@pytest.mark.parametrize(
+    "cov_matrix",
+    [
+        pd.DataFrame(np.eye(2), index=["A", "B"], columns=["A", "B"]),
+        np.eye(2),
+    ],
+)
+def test_covariance_matrix_must_match_expected_returns(mean_returns, cov_matrix):
+    with pytest.raises(ValueError, match="Covariance matrix does not match"):
+        EfficientFrontier(mean_returns, cov_matrix)
 
 
 @pytest.mark.skipif(
@@ -1085,16 +1331,16 @@ def test_efficient_return_error():
         ef.efficient_return(max_ret + 0.01)
 
 
-def test_efficient_frontier_error():
+def test_efficient_return_reuses_zero_max_return(monkeypatch):
     ef = setup_efficient_frontier()
-    with pytest.raises(ValueError):
-        EfficientFrontier(ef.expected_returns[:-1], ef.cov_matrix)
-    with pytest.raises(TypeError):
-        EfficientFrontier(0.02, ef.cov_matrix)
-    with pytest.raises(ValueError):
-        EfficientFrontier(ef.expected_returns, None)
-    with pytest.raises(TypeError):
-        EfficientFrontier(ef.expected_returns, 0.01)
+    monkeypatch.setattr(ef, "_max_return_value", 0.0)
+    monkeypatch.setattr(
+        ef,
+        "_max_return",
+        lambda: pytest.fail("cached maximum return was recomputed"),
+    )
+
+    ef.efficient_return(0.0)
 
 
 @pytest.mark.skipif(
