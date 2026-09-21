@@ -309,6 +309,36 @@ def test_bl_weights():
     assert w2 == w
 
 
+def test_bl_weights_return_raw():
+    df = get_data()
+    S = risk_models.sample_cov(df)
+
+    viewdict = {"AAPL": 0.20, "BBY": -0.30, "BAC": 0, "SBUX": -0.2, "T": 0.131321}
+    bl = BlackLittermanModel(S, absolute_views=viewdict)
+
+    prices = pd.read_csv(
+        resource("spy_prices.csv"), parse_dates=True, index_col=0
+    ).squeeze("columns")
+    delta = market_implied_risk_aversion(prices)
+
+    raw = bl.bl_weights(delta, return_raw=True)
+    # self.weights is always the normalized version, regardless of return_raw,
+    # so downstream calls like portfolio_performance() are unaffected.
+    normalized = bl._make_output_weights()
+
+    # The raw weights are proportional to the normalized ones by exactly the
+    # sum that normalization divided out - not equal to them.
+    raw_sum = sum(raw.values())
+    assert (
+        abs(raw_sum - 1) > 1e-3
+    ), "fixture should have real leverage to make this a meaningful check"
+    for ticker in raw:
+        assert raw[ticker] == pytest.approx(normalized[ticker] * raw_sum, rel=1e-8)
+
+    # Calling with return_raw=False (the default) is unchanged from before.
+    assert bl.bl_weights(delta) == normalized
+
+
 def test_market_implied_prior():
     df = get_data()
     S = risk_models.sample_cov(df)
