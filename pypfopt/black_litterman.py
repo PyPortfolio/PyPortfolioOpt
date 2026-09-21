@@ -471,7 +471,7 @@ class BlackLittermanModel(BaseOptimizer):
         posterior_cov = self.cov_matrix + M
         return pd.DataFrame(posterior_cov, index=self.tickers, columns=self.tickers)
 
-    def bl_weights(self, risk_aversion=None):
+    def bl_weights(self, risk_aversion=None, return_raw=False):
         r"""
         Compute the weights implied by the posterior returns, given the
         market price of risk. Technically this can be applied to any
@@ -486,6 +486,14 @@ class BlackLittermanModel(BaseOptimizer):
         ----------
         risk_aversion : positive float, optional
             risk aversion parameter, defaults to 1
+        return_raw : bool, optional
+            if True, return the unnormalized weights (which do not sum to 1)
+            instead of normalizing them to sum to 1. The raw weights carry
+            information about the total amount of borrowing/lending implied
+            by the posterior, which normalizing discards; ``self.weights``
+            is always set to the normalized weights regardless of this flag,
+            so subsequent calls (e.g. ``portfolio_performance``) are
+            unaffected. Defaults to False.
 
         Returns
         -------
@@ -507,6 +515,8 @@ class BlackLittermanModel(BaseOptimizer):
                 raise e
         raw_weights = weight_solution
         self.weights = raw_weights / raw_weights.sum()
+        if return_raw:
+            return self._make_output_weights(raw_weights)
         return self._make_output_weights()
 
     def optimize(self, risk_aversion=None):
