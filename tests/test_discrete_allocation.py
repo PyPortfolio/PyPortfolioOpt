@@ -59,6 +59,48 @@ def test_greedy_portfolio_allocation():
     assert leftover_verbose == leftover
 
 
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_greedy_portfolio_integer_prices(dtype):
+    latest_prices = pd.Series({"A": 30, "B": 20}, dtype=dtype)
+    original_prices = latest_prices.copy()
+    da = DiscreteAllocation(
+        {"A": 0.5, "B": 0.5}, latest_prices, total_portfolio_value=100
+    )
+
+    allocation, leftover = da.greedy_portfolio()
+
+    assert allocation == {"A": 2, "B": 2}
+    assert leftover == 0
+    total = sum(num * latest_prices[ticker] for ticker, num in allocation.items())
+    assert total + leftover == 100
+    pd.testing.assert_series_equal(latest_prices, original_prices)
+
+
+@pytest.mark.parametrize(
+    "reinvest, expected_allocation, expected_leftover, gross_budget",
+    [
+        (False, {"A": 3, "B": -1}, 15, 125),
+        (True, {"A": 4, "B": -1}, 10, 150),
+    ],
+)
+def test_greedy_portfolio_integer_prices_short(
+    reinvest, expected_allocation, expected_leftover, gross_budget
+):
+    latest_prices = pd.Series({"A": 30, "B": 20}, dtype="int64")
+    original_prices = latest_prices.copy()
+    da = DiscreteAllocation(
+        {"A": 1.25, "B": -0.25}, latest_prices, total_portfolio_value=100
+    )
+
+    allocation, leftover = da.greedy_portfolio(reinvest=reinvest)
+
+    assert allocation == expected_allocation
+    assert leftover == expected_leftover
+    total = sum(abs(num) * latest_prices[ticker] for ticker, num in allocation.items())
+    assert total + leftover == gross_budget
+    pd.testing.assert_series_equal(latest_prices, original_prices)
+
+
 def test_greedy_allocation_rmse_error():
     ef = setup_efficient_frontier()
     w = ef.max_sharpe(risk_free_rate=0.02)

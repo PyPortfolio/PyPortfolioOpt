@@ -25,6 +25,9 @@ algorithm, the other using integer programming.
 Greedy algorithm
 ================
 
+The greedy allocator accepts integer-valued quotes as well as floating-point prices
+in ``latest_prices``, without changing the input Series or its dtype.
+
 ``DiscreteAllocation.greedy_portfolio()`` proceeds in two 'rounds'.
 In the first round, we buy as many shares as we can for each asset without going over
 the desired weight. In the Apple example, :math:`1500/190 \approx 7.89`, so we buy 7
