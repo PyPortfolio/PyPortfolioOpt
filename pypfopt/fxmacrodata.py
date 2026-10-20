@@ -156,10 +156,9 @@ def _format_path(path_template, kwargs):
 
 
 def _payload_rows(payload):
+    payload = _check_payload(payload)
     if isinstance(payload, list):
         return payload
-    if not isinstance(payload, dict):
-        return []
     data = payload.get("data")
     if isinstance(data, list):
         return data
@@ -211,9 +210,9 @@ def _check_payload(payload):
     if isinstance(payload, list):
         return payload
     if not isinstance(payload, dict):
-        raise ValueError("FXMacroData returned an unexpected response shape")
-    if "detail" in payload and "data" not in payload:
-        raise ValueError("FXMacroData returned an error: %s" % payload["detail"])
+        raise ValueError("FXMacroData returned an invalid response shape")
+    if "detail" in payload or "error" in payload:
+        raise ValueError("FXMacroData returned an error response")
     return payload
 
 
@@ -371,7 +370,9 @@ class FXMacroDataClient:
                 dataset, limit=page_size, offset=offset, **kwargs
             )
             page = payload.get("data") if isinstance(payload, dict) else payload
-            if not isinstance(page, list) or not page:
+            if not isinstance(page, list):
+                raise ValueError("FXMacroData returned an invalid paginated response")
+            if not page:
                 break
             rows.extend(page)
             if limit is not None and len(rows) >= limit:

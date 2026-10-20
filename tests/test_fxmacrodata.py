@@ -139,3 +139,77 @@ def test_error_body_raises_clean_error(monkeypatch, payload):
     client = fxmacrodata.FXMacroDataClient(api_key="test-key")
     with pytest.raises(ValueError, match="FXMacroData returned"):
         client.fetch_dataset("cot", currency="eur")
+
+
+@pytest.mark.parametrize(
+    "payload", [{"detail": "private upstream text"}, {"error": "private upstream text"}]
+)
+def test_error_payload_cannot_become_dataframe(payload):
+    with pytest.raises(ValueError, match="error response") as excinfo:
+        fxmacrodata.FXMacroDataClient().to_dataframe(payload)
+    assert "private upstream text" not in str(excinfo.value)
+
+
+@pytest.mark.parametrize("payload", [None, "unexpected text", 1, True])
+def test_invalid_payload_cannot_look_like_empty_data(payload):
+    with pytest.raises(ValueError, match="invalid response"):
+        fxmacrodata.FXMacroDataClient().to_dataframe(payload)
+
+
+@pytest.mark.parametrize(
+    "payload", [{"detail": "private upstream text"}, {"error": "private upstream text"}, None]
+)
+def test_fetch_dataset_rejects_invalid_payload(monkeypatch, payload):
+    monkeypatch.setattr(
+        fxmacrodata, "urlopen", lambda *args, **kwargs: _Response(payload)
+    )
+    with pytest.raises(ValueError):
+        fxmacrodata.FXMacroDataClient().fetch_dataset("calendar", currency="usd")
+
+
+@pytest.mark.parametrize(
+    "bad_page",
+    [{"detail": "private upstream text"}, {"error": "private upstream text"}, {},
+     {"data": {}}, None],
+)
+def test_bad_later_page_does_not_return_partial_history(monkeypatch, bad_page):
+    pages = iter(
+        [
+            {
+                "data": [{"date": "2024-01-01", "val": 1.0}],
+                "pagination": {"has_more": True, "next_offset": 1},
+            },
+            bad_page,
+        ]
+    )
+    monkeypatch.setattr(
+        fxmacrodata, "urlopen", lambda *args, **kwargs: _Response(next(pages))
+    )
+    with pytest.raises(ValueError):
+        fxmacrodata.FXMacroDataClient().dataframe("forex", base="eur", quote="usd")
+
+
+def test_successful_empty_page_is_still_empty(monkeypatch):
+    monkeypatch.setattr(
+        fxmacrodata, "urlopen", lambda *args, **kwargs: _Response({"data": []})
+    )
+    frame = fxmacrodata.FXMacroDataClient().dataframe("forex", base="eur", quote="usd")
+    assert frame.empty
+
+
+def test_list_pages_are_still_supported(monkeypatch):
+    monkeypatch.setattr(
+        fxmacrodata, "urlopen", lambda *args, **kwargs: _Response(_rows(2))
+    )
+    frame = fxmacrodata.FXMacroDataClient().dataframe("forex", base="eur", quote="usd")
+    assert len(frame) == 2
+
+
+def test_upstream_private_detail_is_not_echoed(monkeypatch):
+    monkeypatch.setattr(
+        fxmacrodata, "urlopen",
+        lambda *args, **kwargs: _Response({"detail": "fixture-private-value"}),
+    )
+    with pytest.raises(ValueError) as excinfo:
+        fxmacrodata.FXMacroDataClient().fetch_dataset("calendar", currency="usd")
+    assert "fixture-private-value" not in str(excinfo.value)
