@@ -183,7 +183,9 @@ class BlackLittermanModel(BaseOptimizer):
         market_caps : np.ndarray or pd.Series, optional
             (kwarg) market caps for the assets, required if pi="market"
         risk_free_rate : float, optional
-            (kwarg) risk_free_rate is needed in some methods. Defaults to 0.0.
+            (kwarg) risk-free rate added to a market prior and subtracted when
+            computing implied weights. Defaults to 0.0. If an explicit prior
+            contains total returns, pass its risk-free rate here as well.
         """
         if sys.version_info[1] == 5:  # pragma: no cover
             warnings.warn(
@@ -206,6 +208,7 @@ class BlackLittermanModel(BaseOptimizer):
             self.Q, self.P = self._parse_views(absolute_views)
         else:
             self._set_Q_P(Q, P)
+        self.risk_free_rate = kwargs.get("risk_free_rate", 0.0)
         self._set_risk_aversion(risk_aversion)
         self._set_pi(pi, **kwargs)
         self._set_tau(tau)
@@ -480,7 +483,7 @@ class BlackLittermanModel(BaseOptimizer):
 
         .. math::
 
-            w = (\delta \Sigma)^{-1} E(R)
+            w = (\delta \Sigma)^{-1} (E(R) - R_f)
 
         Parameters
         ----------
@@ -497,12 +500,12 @@ class BlackLittermanModel(BaseOptimizer):
 
         self.posterior_rets = self.bl_returns()
         A = risk_aversion * self.cov_matrix
-        b = self.posterior_rets
+        b = self.posterior_rets - self.risk_free_rate
         try:
             weight_solution = np.linalg.solve(A, b)
         except np.linalg.LinAlgError as e:
             if "Singular matrix" in str(e):
-                weight_solution = np.linalg.lstsq(self._A, b, rcond=None)[0]
+                weight_solution = np.linalg.lstsq(A, b, rcond=None)[0]
             else:
                 raise e
         raw_weights = weight_solution

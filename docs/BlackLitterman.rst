@@ -243,3 +243,8 @@ References
 .. [2] Black, F; Litterman, R. Combining investor views with market equilibrium. The Journal of Fixed Income, 1991.
 .. [3] Walters, Jay, The Factor Tau in the Black-Litterman Model (October 9, 2013). Available at SSRN: https://ssrn.com/abstract=1701467 or http://dx.doi.org/10.2139/ssrn.1701467
 .. [4] Walters J. The Black-Litterman Model in Detail (2014). SSRN Electron J.;(February 2007):1–65. 
+
+When priors and absolute views are total returns, pass ``risk_free_rate`` to
+``BlackLittermanModel``. The market-prior constructor adds this rate;
+``bl_weights()`` subtracts it before recovering implied weights. Leave it at
+zero when the supplied estimates are already excess returns.
