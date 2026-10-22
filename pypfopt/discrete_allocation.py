@@ -356,7 +356,7 @@ class DiscreteAllocation:
             self.allocation = self._remove_zero_positions(self.allocation)
             return self.allocation, long_leftover + short_leftover
 
-        p = self.latest_prices.values
+        p = self.latest_prices.loc[[ticker for ticker, _ in self.weights]].values
         n = len(p)
         w = np.fromiter([i[1] for i in self.weights], dtype=float)
 

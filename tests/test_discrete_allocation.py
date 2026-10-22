@@ -7,6 +7,32 @@ from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 from tests.utilities_for_tests import get_data, setup_efficient_frontier
 
 
+@pytest.mark.parametrize("price_order", [["AAA", "BBB"], ["BBB", "AAA"]])
+def test_lp_portfolio_aligns_prices_by_ticker(price_order):
+    weights = {"BBB": 0.5, "AAA": 0.5}
+    prices = pd.Series({"AAA": 10.0, "BBB": 1000.0}).loc[price_order]
+    allocation, leftover = DiscreteAllocation(weights, prices).lp_portfolio(
+        solver="SCIPY"
+    )
+
+    assert allocation == {"BBB": 5, "AAA": 500}
+    spent = sum(prices[ticker] * count for ticker, count in allocation.items())
+    assert spent <= 10000
+    assert leftover == pytest.approx(10000 - spent, abs=1e-6)
+
+
+def test_lp_portfolio_reordered_stock_prices_preserves_budget():
+    weights = setup_efficient_frontier().max_sharpe(risk_free_rate=0.02)
+    prices = get_latest_prices(get_data()).iloc[::-1]
+    allocation, leftover = DiscreteAllocation(weights, prices).lp_portfolio(
+        solver="SCIPY"
+    )
+
+    spent = sum(prices[ticker] * count for ticker, count in allocation.items())
+    assert spent <= 10000 + 1e-6
+    assert leftover == pytest.approx(10000 - spent, abs=1e-6)
+
+
 def test_get_latest_prices():
     df = get_data()
     latest_prices = get_latest_prices(df)
