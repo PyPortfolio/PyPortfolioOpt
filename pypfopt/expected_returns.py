@@ -278,7 +278,7 @@ def capm_return(
     if returns_data:
         returns = prices.copy()
         if market_prices is not None:
-            market_returns = market_prices
+            market_returns = market_prices.copy()
     else:
         returns = returns_from_prices(prices, log_returns)
 
