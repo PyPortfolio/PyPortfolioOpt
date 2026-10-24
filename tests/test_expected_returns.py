@@ -250,6 +250,30 @@ def test_capm_with_benchmark():
     assert (mu2 >= mu).all()
 
 
+@pytest.mark.parametrize("compounding", [True, False])
+def test_capm_returns_data_preserves_benchmark(compounding):
+    prices = get_data()
+    benchmark_prices = get_benchmark_data()
+    returns = expected_returns.returns_from_prices(prices)
+    market_returns = expected_returns.returns_from_prices(benchmark_prices)
+    original_returns = returns.copy(deep=True)
+    original_market_returns = market_returns.copy(deep=True)
+
+    expected = expected_returns.capm_return(
+        prices, market_prices=benchmark_prices, compounding=compounding
+    )
+    actual = expected_returns.capm_return(
+        returns,
+        market_prices=market_returns,
+        returns_data=True,
+        compounding=compounding,
+    )
+
+    pd.testing.assert_series_equal(actual, expected)
+    pd.testing.assert_frame_equal(returns, original_returns)
+    pd.testing.assert_frame_equal(market_returns, original_market_returns)
+
+
 def test_risk_matrix_and_returns_data():
     # Test the switcher method for simple calls
     df = get_data()
