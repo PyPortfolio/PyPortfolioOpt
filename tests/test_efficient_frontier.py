@@ -1257,7 +1257,7 @@ def test_max_sharpe_semicovariance():
     assert all([i >= 0 for i in w.values()])
     np.testing.assert_allclose(
         ef.portfolio_performance(risk_free_rate=0.02),
-        (0.2762965426962885, 0.07372667096108301, 3.476307004714425),
+        (0.3337156666549726, 0.1733001108784157, 1.810245042919043),
     )
 
 
@@ -1271,7 +1271,7 @@ def test_max_sharpe_short_semicovariance():
     np.testing.assert_almost_equal(ef.weights.sum(), 1)
     np.testing.assert_allclose(
         ef.portfolio_performance(risk_free_rate=0.02),
-        (0.42444834528495234, 0.0898263632679403, 4.50255727350929),
+        (0.6050331853361551, 0.1756415312028965, 3.330836285299403),
     )
 
 
@@ -1291,7 +1291,7 @@ def test_min_volatility_shrunk_L2_reg():
     assert all([i >= 0 for i in w.values()])
     np.testing.assert_allclose(
         ef.portfolio_performance(risk_free_rate=0.02),
-        (0.17358178582309983, 0.19563960638632416, 0.7850239972361532),
+        (0.1811698577736233, 0.1511922398792176, 1.065992923329772),
     )
 
 
@@ -1308,7 +1308,7 @@ def test_efficient_return_shrunk():
     assert all([i >= 0 for i in w.values()])
     np.testing.assert_allclose(
         ef.portfolio_performance(risk_free_rate=0.02),
-        (0.22, 0.08892163937693882, 2.2491713085967766),
+        (0.22, 0.1263908584841322, 1.582392923022269),
     )
 
 

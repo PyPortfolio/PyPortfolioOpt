@@ -246,10 +246,13 @@ def semicovariance(
         returns = prices
     else:
         returns = returns_from_prices(prices, log_returns)
+    observed = returns.notna().astype(float)
+    counts = observed.T @ observed
+    if (counts == 0).any().any():
+        raise ValueError("Every asset pair must have at least one joint observation")
     drops = np.fmin(returns - benchmark, 0)
-    T = drops.shape[0]
     return fix_nonpositive_semidefinite(
-        (drops.T @ drops) / T * frequency, kwargs.get("fix_method", "spectral")
+        (drops.T @ drops) / counts * frequency, kwargs.get("fix_method", "spectral")
     )
 
 
@@ -462,6 +465,24 @@ class CovarianceShrinkage:
         self.S = self.X.cov().values
         self.delta = None  # shrinkage constant
 
+    def _complete_returns(self):
+        """Select common observations for estimators requiring a complete sample."""
+        complete = self.X.dropna(how="any")
+        if len(complete) < 2:
+            raise ValueError(
+                "Shrinkage estimation requires at least two complete observations"
+            )
+        dropped = len(self.X) - len(complete)
+        if dropped:
+            warnings.warn(
+                "Dropping {} incomplete return observations for shrinkage estimation".format(
+                    dropped
+                ),
+                UserWarning,
+                stacklevel=3,
+            )
+        return complete.values
+
     def _format_and_annualize(self, raw_cov_array):
         """
         Helper method which annualises the output of shrinkage calculations,
@@ -529,7 +550,7 @@ class CovarianceShrinkage:
             shrunk sample covariance matrix
         """
         if shrinkage_target == "constant_variance":
-            X = np.nan_to_num(self.X.values)
+            X = self._complete_returns()
             shrunk_cov, self.delta = self.covariance.ledoit_wolf(X)
         elif shrinkage_target == "single_factor":
             shrunk_cov, self.delta = self._ledoit_wolf_single_factor()
@@ -553,7 +574,7 @@ class CovarianceShrinkage:
         np.ndarray, float
             shrunk sample covariance matrix, shrinkage constant
         """
-        X = np.nan_to_num(self.X.values)
+        X = self._complete_returns()
 
         # De-mean returns
         t, n = np.shape(X)
@@ -610,10 +631,11 @@ class CovarianceShrinkage:
         np.ndarray, float
             shrunk sample covariance matrix, shrinkage constant
         """
-        X = np.nan_to_num(self.X.values)
+        X = self._complete_returns()
         t, n = np.shape(X)
 
-        S = self.S  # sample cov matrix
+        # Use the same complete observations for covariance and higher moments.
+        S = np.atleast_2d(np.cov(X, rowvar=False))
 
         # Constant correlation target
         var = np.diag(S).reshape(-1, 1)
@@ -663,6 +685,6 @@ class CovarianceShrinkage:
         np.ndarray
             shrunk sample covariance matrix
         """
-        X = np.nan_to_num(self.X.values)
+        X = self._complete_returns()
         shrunk_cov, self.delta = self.covariance.oas(X)
         return self._format_and_annualize(shrunk_cov)

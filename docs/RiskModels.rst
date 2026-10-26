@@ -163,3 +163,53 @@ References
 .. [3] Ledoit, O., & Wolf, M. (2003). `Honey, I Shrunk the Sample Covariance Matrix <http://www.ledoit.net/honey.pdf>`_ The Journal of Portfolio Management, 30(4), 110–119. https://doi.org/10.3905/jpm.2004.110
 .. [4] Ledoit, O., & Wolf, M. (2001). `Improved estimation of the covariance matrix of stock returns with an application to portfolio selection <http://www.ledoit.net/ole2.pdf>`_, 10, 603–621.
 .. [5] Chen et al. (2010),  `Shrinkage Algorithms for MMSE Covariance Estimation <https://arxiv.org/pdf/0907.4698.pdf>`_, IEEE Transactions on Signals Processing, 58(10), 5016-5029.
+
+Missing returns
+---------------
+
+Automatic Ledoit-Wolf and OAS estimates use the common window of fully observed
+returns. They warn when incomplete rows are discarded and require at least two
+complete observations. Missing values are not zero returns; explicitly choose
+an imputation model before calling these estimators if dropping rows would lose
+too much information. Manual shrinkage retains the pairwise sample covariance.
+
+``semicovariance`` averages each pair over jointly observed returns, including
+observed zero returns. It raises an error if any pair has no joint observation.
+As with pairwise sample covariance, the resulting matrix may need the existing
+positive-semidefinite repair, which can alter individual entries.
+
+.. warning::
+
+    This changes results for inputs containing missing returns. Previous
+    versions treated missing returns as zero downside observations and divided
+    all semicovariance entries by the total number of rows. Saved portfolio
+    weights, reported risk and Sharpe ratios can therefore change materially;
+    recompute them and review the chosen missing-data policy. Fully observed
+    inputs retain the same semicovariance formula.
+
+    On the repository stock-price fixture with ``benchmark=0`` and a 2% risk-free
+    rate, the long-only ``EfficientFrontier.max_sharpe`` example's reported risk
+    changes from approximately 0.0737 to 0.1733 and its Sharpe ratio from 3.48 to
+    1.81. These are in-sample outputs for different optimized portfolios, using
+    a semicovariance risk matrix; they are not realized volatility, a universal
+    multiplier, or evidence of better out-of-sample performance.
+
+Pairwise deletion does not guarantee a positive-semidefinite matrix. For example,
+the three return rows ``(-.1, -.1)``, ``(0, NaN)``, ``(NaN, 0)`` at benchmark zero
+and frequency one produce raw entries ``[[.005, .01], [.01, .005]]``. Its
+eigenvalues are -.005 and .015. The default spectral repair warns and sets the
+negative eigenvalue to zero, producing .0075 in every entry: each diagonal
+increases by .0025 (50%). Thus a repaired diagonal is no longer necessarily the
+observed marginal downside moment. ``fix_method="diag"`` instead adds .0055 to
+each diagonal in this example. Neither repair replaces a considered missing-data
+model or restores observations that were never recorded.
+
+There is no configurable minimum joint-observation count: a pair with one
+shared return is allowed, while a pair with no shared returns raises an error.
+Different entries can therefore be estimated from very different sample sizes.
+In the example above, the off-diagonal uses one observation and each diagonal
+uses two; dividing the off-diagonal by the marginal scales gives 2, not a valid
+correlation. Spectral repair restores positive semidefiniteness but does not
+make that one-observation estimate reliable or add missing information. Check
+joint-observation counts and choose a missing-data policy before using the
+matrix for portfolio optimization.
