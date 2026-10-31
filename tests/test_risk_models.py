@@ -177,6 +177,48 @@ def test_exp_cov_limits():
     assert np.abs(S2 - sample_cov).max().max() < 1e-3
 
 
+@pytest.mark.parametrize(
+    "estimator", [risk_models.exp_cov, risk_models.CovarianceShrinkage]
+)
+@pytest.mark.parametrize(
+    "returns_data, n_rows", [(False, 0), (False, 1), (False, 2), (True, 0), (True, 1)]
+)
+def test_covariance_estimators_require_two_returns(estimator, returns_data, n_rows):
+    if returns_data:
+        data = pd.DataFrame({"A": [0.01, -0.02], "B": [-0.02, 0.04]})
+    else:
+        data = pd.DataFrame({"A": [100.0, 101.0, 98.98], "B": [50.0, 49.0, 50.96]})
+
+    with pytest.raises(ValueError, match="at least two return observations"):
+        estimator(data.iloc[:n_rows], returns_data=returns_data)
+
+
+@pytest.mark.parametrize(
+    "estimator", [risk_models.exp_cov, risk_models.CovarianceShrinkage]
+)
+def test_covariance_estimators_ignore_empty_rows_when_counting_returns(estimator):
+    returns = pd.DataFrame({"A": [np.nan, 0.01, np.nan], "B": [np.nan, -0.02, np.nan]})
+
+    with pytest.raises(ValueError, match="at least two return observations"):
+        estimator(returns, returns_data=True)
+
+
+@pytest.mark.parametrize("method", ["exp_cov", "ledoit_wolf"])
+@pytest.mark.parametrize("returns_data", [False, True])
+def test_covariance_estimators_accept_two_returns(method, returns_data):
+    if returns_data:
+        data = pd.DataFrame({"A": [0.01, -0.02], "B": [-0.02, 0.04]})
+    else:
+        data = pd.DataFrame({"A": [100.0, 101.0, 98.98], "B": [50.0, 49.0, 50.96]})
+    expected = pd.DataFrame(
+        [[0.0567, -0.1134], [-0.1134, 0.2268]], index=["A", "B"], columns=["A", "B"]
+    )
+
+    covariance = risk_models.risk_matrix(data, method=method, returns_data=returns_data)
+
+    pd.testing.assert_frame_equal(covariance, expected)
+
+
 def test_cov_to_corr():
     df = get_data()
     rets = risk_models.returns_from_prices(df).dropna()
