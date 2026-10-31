@@ -300,6 +300,11 @@ def exp_cov(
     log_returns : bool, optional
         whether to compute using log returns. Defaults to False.
 
+    Raises
+    ------
+    ValueError
+        if fewer than two non-empty return observations are available.
+
     Returns
     -------
     pd.DataFrame
@@ -313,6 +318,10 @@ def exp_cov(
         returns = prices
     else:
         returns = returns_from_prices(prices, log_returns)
+    if len(returns.dropna(how="all")) < 2:
+        raise ValueError(
+            "Covariance estimation requires at least two return observations."
+        )
     N = len(assets)
 
     # Loop over matrix, filling entries with the pairwise exp cov
@@ -436,6 +445,11 @@ class CovarianceShrinkage:
             number of time periods in a year, defaults to 252 (the number of trading days in a year)
         log_returns : bool, optional
             whether to compute using log returns. Defaults to False.
+
+        Raises
+        ------
+        ValueError
+            if fewer than two non-empty return observations are available.
         """
         if not _check_soft_dependencies(["scikit-learn"], severity="none"):
             raise ImportError(
@@ -459,6 +473,10 @@ class CovarianceShrinkage:
         else:
             self.X = returns_from_prices(prices, log_returns).dropna(how="all")
 
+        if len(self.X) < 2:
+            raise ValueError(
+                "Covariance estimation requires at least two return observations."
+            )
         self.S = self.X.cov().values
         self.delta = None  # shrinkage constant
 
