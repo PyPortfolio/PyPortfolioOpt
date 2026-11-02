@@ -192,13 +192,16 @@ class CLA(BaseOptimizer):
         res = float(res[0, 0])
         return res, bi
 
-    def _get_matrices(self, f):
+    def _get_matrices(self, f, w):
         # Slice covarF,covarFB,covarB,meanF,meanB,wF,wB
         covarF = self._reduce_matrix(self.cov_matrix, f, f)
         meanF = self._reduce_matrix(self.mean, f, [0])
         b = self._get_b(f)
         covarFB = self._reduce_matrix(self.cov_matrix, f, b)
-        wB = self._reduce_matrix(self.w[-1], b, [0])
+        # Read the blocked weights from the working vector ``w``, not from the
+        # last stored turning point: right after a free weight hits a bound,
+        # ``w`` holds that bound while ``self.w[-1]`` still holds the old value.
+        wB = self._reduce_matrix(w, b, [0])
         return covarF, covarFB, meanF, wB
 
     def _get_b(self, f):
@@ -338,7 +341,7 @@ class CLA(BaseOptimizer):
             # 1) case a): Bound one free weight
             l_in = None
             if len(f) > 1:
-                covarF, covarFB, meanF, wB = self._get_matrices(f)
+                covarF, covarFB, meanF, wB = self._get_matrices(f, w)
                 covarF_inv = np.linalg.inv(covarF)
                 j = 0
                 for i in f:
@@ -353,7 +356,7 @@ class CLA(BaseOptimizer):
             if len(f) < self.mean.shape[0]:
                 b = self._get_b(f)
                 for i in b:
-                    covarF, covarFB, meanF, wB = self._get_matrices(f + [i])
+                    covarF, covarFB, meanF, wB = self._get_matrices(f + [i], w)
                     covarF_inv = np.linalg.inv(covarF)
                     lam, bi = self._compute_lambda(
                         covarF_inv,
@@ -370,7 +373,7 @@ class CLA(BaseOptimizer):
             if (l_in is None or l_in < 0) and (l_out is None or l_out < 0):
                 # 3) compute minimum variance solution
                 self.ls.append(0)
-                covarF, covarFB, meanF, wB = self._get_matrices(f)
+                covarF, covarFB, meanF, wB = self._get_matrices(f, w)
                 covarF_inv = np.linalg.inv(covarF)
                 meanF = np.zeros(meanF.shape)
             else:
@@ -382,7 +385,7 @@ class CLA(BaseOptimizer):
                 else:
                     self.ls.append(l_out)
                     f.append(i_out)
-                covarF, covarFB, meanF, wB = self._get_matrices(f)
+                covarF, covarFB, meanF, wB = self._get_matrices(f, w)
                 covarF_inv = np.linalg.inv(covarF)
             # 5) compute solution vector
             wF, g = self._compute_w(covarF_inv, covarFB, meanF, wB)

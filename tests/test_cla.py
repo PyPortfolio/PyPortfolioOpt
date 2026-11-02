@@ -1,8 +1,11 @@
+from itertools import pairwise
+
 import numpy as np
 import pytest
 
 from pypfopt import risk_models
 from pypfopt.cla import CLA
+from pypfopt.efficient_frontier import EfficientFrontier
 from tests.utilities_for_tests import get_data, setup_cla
 
 
@@ -150,3 +153,26 @@ def test_cla_efficient_frontier():
     # higher return = higher risk
     assert sigma[-1] < sigma[0] and mu[-1] < mu[0]
     assert weights[0].shape == (20, 1)
+
+
+@pytest.mark.parametrize("bounds", [(0, 1), (0, 0.1)])
+def test_cla_no_turning_point_lost(bounds):
+    # Regression test for #750. Right after a free weight hit a bound, the next
+    # turning point was solved with that weight's previous value, missed the
+    # budget and was purged, so the frontier interpolated across a lost corner.
+    # Between turning points the CLA frontier must be the minimum-variance
+    # portfolio for its return, as EfficientFrontier computes it independently.
+    mean_return, sample_cov_matrix = setup_cla(data_only=True)
+    cla = CLA(mean_return, sample_cov_matrix, weight_bounds=bounds)
+    cla._solve()
+    cov = sample_cov_matrix.to_numpy()
+    for w0, w1 in pairwise(cla.w):
+        if np.allclose(w0, w1):
+            continue  # a repeated point, e.g. the first one at lambda = inf
+        w = ((w0 + w1) / 2).ravel()
+        np.testing.assert_almost_equal(w.sum(), 1)
+        ef = EfficientFrontier(mean_return, sample_cov_matrix, weight_bounds=bounds)
+        ef.efficient_return(float(w @ cla.mean.ravel()))
+        w_ef = np.array(list(ef.clean_weights(rounding=None).values()))
+        var_cla, var_ef = w @ cov @ w, w_ef @ cov @ w_ef
+        assert var_cla <= var_ef * (1 + 1e-6)
