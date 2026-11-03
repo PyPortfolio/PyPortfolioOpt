@@ -219,6 +219,132 @@ inherits from ``BaseOptimizer``, this follows the same API as the ``EfficientFro
     weights = bl.clean_weights()
 
 
+User-selected views with saved research
+=======================================
+
+External research can document why you chose a view without determining its
+return or confidence. This optional offline example uses synthetic saved
+`Adanos <https://adanos.org/>`_ Reddit Stocks research. Adanos is a commercial
+API with a limited free plan. No account, key, SDK, or connection is needed here.
+
+For your own saved input, the API namespace is ``/reddit/stocks/v1`` and the
+endpoint is ``GET https://api.adanos.com/reddit/stocks/v1/stock/{ticker}``.
+Acquisition is separate from this recipe. The ``ADANOS_API_KEY`` environment
+variable supplies the ``X-API-Key`` request header in the
+`API documentation <https://api.adanos.com/docs>`_ examples.
+The ``from`` and ``to`` query parameters are inclusive UTC dates in
+``YYYY-MM-DD`` format. For this bounded example, save one successful response
+per ticker for a single shared day, with ``from`` equal to ``to``.
+Use exact ticker identities that match your price columns. Do not mix platforms
+or infer an issuer from a similar name.
+
+``saved_reports`` below contains only synthetic ``StockSentiment`` fields used
+by the recipe. ``daily_trend`` supplies the date, attributed ``mentions``,
+nullable ``sentiment_score`` in [-1, 1], and nullable ``buzz_score`` in [0, 100].
+Sentiment is not an expected return or a calibrated confidence. Buzz measures
+activity, not return magnitude. Neither score sets a Black-Litterman input.
+The annual views of 6% and 5%, confidences of 70% and 40%, and 4% annual prior
+are explicitly user-selected illustrative assumptions.
+
+Run from the repository root to use ``tests/resources/stock_prices.csv``.
+The price subset ends on 2018-04-11. All research values and observation times
+below are fictional, not actual Adanos coverage of 2018. This is not an
+investable backtest, a point-in-time dataset, or evidence of predictive
+performance. A UTC day label is not a publication timestamp. Even a later
+observation timestamp does not establish historical availability or account
+for revisions. Real research requires independently matched as-of data.
+
+.. code-block:: pycon
+    :name: adanos-black-litterman
+
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> from pypfopt import risk_models
+    >>> from pypfopt.black_litterman import BlackLittermanModel
+    >>> def research_example(prices, saved_reports, views, confidences, observed_at):
+    ...     if not views.index.is_unique or not confidences.index.is_unique:
+    ...         raise ValueError("Each ticker needs one manual view and confidence")
+    ...     if not views.index.isin(prices.columns).all() or not np.isfinite(views).all():
+    ...         raise ValueError("Views must be finite returns on known price tickers")
+    ...     aligned = confidences.reindex(views.index)
+    ...     if aligned.isna().any() or not aligned.between(0, 1).all():
+    ...         raise ValueError("Supply a confidence in [0, 1] for every manual view")
+    ...     if not saved_reports or any(
+    ...         "detail" in report or "error" in report
+    ...         or report.get("found") is not True or not report.get("daily_trend")
+    ...         for report in saved_reports
+    ...     ):
+    ...         raise ValueError("Missing research context or saved API error")
+    ...     context = pd.json_normalize(saved_reports, "daily_trend", ["ticker"])
+    ...     context = context.reindex(columns=[
+    ...         "ticker", "date", "mentions", "sentiment_score", "buzz_score"
+    ...     ]).set_index("ticker").sort_index()
+    ...     if not context.index.is_unique:
+    ...         raise ValueError("Use one research row per ticker")
+    ...     context["date"] = pd.to_datetime(context["date"], format="%Y-%m-%d")
+    ...     if context["date"].isna().any() or context["date"].nunique() != 1:
+    ...         raise ValueError("Use one shared UTC research day")
+    ...     for field, low, high in [("sentiment_score", -1, 1), ("buzz_score", 0, 100)]:
+    ...         if not context[field].dropna().between(low, high).all():
+    ...             raise ValueError("Research score outside its documented range")
+    ...     mentions = context["mentions"]
+    ...     if mentions.isna().any() or (mentions < 0).any() or (mentions % 1 != 0).any():
+    ...         raise ValueError("Mentions must be nonnegative integers")
+    ...     audit = context.reindex(views.index)
+    ...     if audit["date"].isna().any():
+    ...         raise ValueError("Missing research context for a manually selected view")
+    ...     observed = pd.Timestamp(observed_at)
+    ...     if observed.tzinfo is None:
+    ...         raise ValueError("Record a timezone-aware snapshot observation time")
+    ...     audit["observed_at"] = observed.tz_convert("UTC")
+    ...     audit["source"] = "https://api.adanos.com/reddit/stocks/v1/stock/" + audit.index
+    ...     audit["annual_view"] = views
+    ...     audit["confidence"] = aligned
+    ...     covariance = risk_models.sample_cov(prices, frequency=252)
+    ...     prior = pd.Series(0.04, index=covariance.columns)
+    ...     model = BlackLittermanModel(
+    ...         covariance, pi=prior, absolute_views=views, omega="idzorek",
+    ...         view_confidences=aligned.to_numpy(),
+    ...     )
+    ...     return audit, model
+    >>> prices = pd.read_csv(
+    ...     "tests/resources/stock_prices.csv", index_col="date", parse_dates=True
+    ... ).loc["2018", ["AAPL", "GOOG", "AMZN"]]
+    >>> saved_reports = [
+    ...     {"ticker": "AAPL", "found": True, "daily_trend": [
+    ...         {"date": "2018-04-11", "mentions": 12, "sentiment_score": 0.3, "buzz_score": 20.0}
+    ...     ]},
+    ...     {"ticker": "GOOG", "found": True, "daily_trend": [
+    ...         {"date": "2018-04-11", "mentions": 8, "sentiment_score": -0.2, "buzz_score": None}
+    ...     ]},
+    ... ]
+    >>> observed_at = "2018-04-12T12:00:00Z"
+    >>> views = pd.Series({"GOOG": 0.06, "AAPL": 0.05})
+    >>> confidences = pd.Series({"AAPL": 0.4, "GOOG": 0.7})
+    >>> audit, model = research_example(prices, saved_reports, views, confidences, observed_at)
+    >>> print(audit[["sentiment_score", "buzz_score", "annual_view", "confidence"]].to_string())
+          sentiment_score  buzz_score  annual_view  confidence
+    GOOG             -0.2         NaN         0.06         0.7
+    AAPL              0.3        20.0         0.05         0.4
+    >>> posterior_returns = model.bl_returns()
+    >>> posterior_covariance = model.bl_cov()
+    >>> posterior_returns.round(4).to_dict()
+    {'AAPL': 0.0494, 'GOOG': 0.0541, 'AMZN': 0.0493}
+
+Inspect ``audit`` to see the research fields alongside each manual assumption.
+Confidences follow ``views.index``, not report order or covariance-column order.
+The prior, views, posterior returns, and covariance all use an annual horizon,
+with 252 trading days for the sample covariance. AMZN has no manual view. Its
+posterior changes through covariance with the assets that have views.
+
+Missing metrics stay missing, not neutral. Missing reports, absent or null
+``daily_trend``, ``found=false``, and saved API errors require an explicit
+decision outside the recipe. They never create zero-return views. Authentication,
+historical-limit, rate-limit, validation, and service errors are not observations.
+This small one-day example rejects repeated tickers rather than choosing a row
+silently. It neither downloads nor redistributes actual API data.
+
+
 Documentation reference
 =======================
 
