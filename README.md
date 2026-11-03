@@ -13,12 +13,11 @@ strategies, PyPortfolioOpt can help you combine your alpha sources in a risk-eff
 
 |  | **[Documentation](https://pyportfolioopt.readthedocs.io/en/latest/)** · **[Tutorials](https://github.com/pyportfolio/pyportfolioopt/tree/main/cookbook)** · **[Release Notes](https://github.com/PyPortfolio/PyPortfolioOpt/releases)** |
 |---|---|
-| **Open&#160;Source** | [![MIT](https://img.shields.io/github/license/pyportfolio/pyportfolioopt)](https://github.com/pyportfolio/pyportfolioopt/blob/master/LICENSE) [![GC.OS Sponsored](https://img.shields.io/badge/GC.OS-Sponsored%20Project-orange.svg?style=flat&colorA=0eac92&colorB=2077b4)](https://gc-os-ai.github.io/) | |
-| **Tutorials** | [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/pyportfolio/pyportfolioopt/main/?filepath=cookbook) |
-| **Community** | [![!discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=chat&color=lightgreen)](https://discord.gg/7uKdHfdcJG) [![!slack](https://img.shields.io/static/v1?logo=linkedin&label=LinkedIn&message=news&color=lightblue)](https://www.linkedin.com/company/pyportfolioopt/)  |
-| **CI/CD** | [![github-actions](https://img.shields.io/github/actions/workflow/status/pyportfolio/pyportfolioopt/main.yml?logo=github)](https://github.com/pyportfolio/pyportfolioopt/actions/workflows/release.yml) [![readthedocs](https://img.shields.io/readthedocs/pyportfolioopt?logo=readthedocs)](https://pyportfolioopt.readthedocs.io/en/latest/?badge=latest) |
+| **Open&#160;Source** | [![MIT](https://img.shields.io/github/license/pyportfolio/pyportfolioopt)](https://github.com/pyportfolio/pyportfolioopt/blob/main/LICENSE) [![GC.OS Sponsored](https://img.shields.io/badge/GC.OS-Sponsored%20Project-orange.svg?style=flat&colorA=0eac92&colorB=2077b4)](https://gc-os-ai.github.io/) | |
+| **Community** | [![!discord](https://img.shields.io/static/v1?logo=discord&label=discord&message=chat&color=lightgreen)](https://discord.gg/7uKdHfdcJG) [![!linkedin](https://img.shields.io/static/v1?logo=linkedin&label=LinkedIn&message=news&color=lightblue)](https://www.linkedin.com/company/pyportfolioopt/)  |
+| **CI/CD** | [![github-actions](https://img.shields.io/github/actions/workflow/status/pyportfolio/pyportfolioopt/main.yml?logo=github)](https://github.com/pyportfolio/pyportfolioopt/actions/workflows/main.yml) [![readthedocs](https://img.shields.io/readthedocs/pyportfolioopt?logo=readthedocs)](https://pyportfolioopt.readthedocs.io/en/latest/?badge=latest) |
 | **Code** |  [![!pypi](https://img.shields.io/pypi/v/pyportfolioopt?color=orange)](https://pypi.org/project/pyportfolioopt/) [![!python-versions](https://img.shields.io/pypi/pyversions/pyportfolioopt)](https://www.python.org/) [![!black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)  |
-| **Downloads** | ![PyPI - Downloads](https://img.shields.io/pypi/dw/pyportfolioopt) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyportfolioopt) [![Downloads](https://static.pepy.tech/personalized-badge/pyportfolioopt?period=total&units=international_system&left_color=grey&right_color=blue&left_text=cumulative%20(pypi))](https://pepy.tech/project/pyportfolioopt) |
+| **Downloads** | ![PyPI - Downloads](https://img.shields.io/pypi/dw/pyportfolioopt) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pyportfolioopt) [![Downloads](https://static.pepy.tech/badge/pyportfolioopt)](https://pepy.tech/project/pyportfolioopt) |
 | **Citation** | [JOSS article](https://joss.theoj.org/papers/10.21105/joss.03066) |
 
 
@@ -403,7 +402,7 @@ Please refer to the [documentation](https://pyportfolioopt.readthedocs.io/en/lat
 - Inline documentation is good: dedicated (separate) documentation is better.
   The two are not mutually exclusive.
 - Formatting should never get in the way of coding: because of this,
-  I have deferred **all** formatting decisions to [Black](https://github.com/ambv/black).
+  I have deferred **all** formatting decisions to [Black](https://github.com/psf/black).
 
 ## Testing
 
