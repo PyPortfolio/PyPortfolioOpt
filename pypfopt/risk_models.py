@@ -80,6 +80,17 @@ def fix_nonpositive_semidefinite(matrix, fix_method="spectral"):
         positive semidefinite covariance matrix
     """
     if _is_positive_semidefinite(matrix):
+        try:
+            cond = np.linalg.cond(matrix)
+            if cond > 1e10:
+                warnings.warn(
+                    f"The covariance matrix is positive semidefinite but "
+                    f"ill-conditioned (condition number: {cond:.2e}). This may "
+                    f"lead to numerical instability in optimization.",
+                    RuntimeWarning,
+                )
+        except np.linalg.LinAlgError:  # pragma: no cover
+            pass
         return matrix
 
     warnings.warn(
