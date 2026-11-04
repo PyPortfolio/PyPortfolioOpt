@@ -224,22 +224,53 @@ def test_greedy_portfolio_allocation_short_different_params_reinvest():
     np.testing.assert_almost_equal(long_total + short_total + leftover, 100000)
 
 
-def test_lp_portfolio_skips_ecos_bb_when_cvxpy_removed_it(monkeypatch):
-    requested = {}
+@pytest.fixture
+def patched_lp_solve(monkeypatch):
+    """Patch the ecos check, installed solvers, and ``Problem.solve`` together.
 
-    def fake_solve(self, *args, **kwargs):
-        requested["solver"] = kwargs.get("solver")
-        raise SolverError("stop before a real solve")
+    The ecos soft-dependency check is forced true. ``installed`` is the list
+    ``installed_solvers`` should return, or a callable that returns that list.
+    The solver argument passed to ``solve`` is stored on the returned dict.
+    ``forward=False`` raises ``SolverError`` after recording; ``forward=True``
+    calls the real solver. ``real_installed_solvers`` is the unpatched function.
+    """
+    requested = {}
+    real_solve = cp.Problem.solve
+    real_installed_solvers = cp.installed_solvers
 
     monkeypatch.setattr(
         "pypfopt.discrete_allocation._check_soft_dependencies",
         lambda *args, **kwargs: True,
     )
-    monkeypatch.setattr(
-        "pypfopt.discrete_allocation.cp.installed_solvers",
-        lambda: ["OSQP", "SCS"],
-    )
-    monkeypatch.setattr("pypfopt.discrete_allocation.cp.Problem.solve", fake_solve)
+
+    def configure(installed, *, forward=False):
+        def installed_solvers():
+            if callable(installed):
+                return installed()
+            return list(installed)
+
+        def solve(self, *args, **kwargs):
+            requested["solver"] = kwargs.get("solver")
+            if not forward:
+                raise SolverError("stop before a real solve")
+            return real_solve(self, *args, **kwargs)
+
+        monkeypatch.setattr(
+            "pypfopt.discrete_allocation.cp.installed_solvers",
+            installed_solvers,
+        )
+        monkeypatch.setattr(
+            "pypfopt.discrete_allocation.cp.Problem.solve",
+            solve,
+        )
+        return requested
+
+    configure.real_installed_solvers = real_installed_solvers
+    return configure
+
+
+def test_lp_portfolio_skips_ecos_bb_when_cvxpy_removed_it(patched_lp_solve):
+    requested = patched_lp_solve(["OSQP", "SCS"])
 
     prices = pd.Series({"A": 10.0, "B": 20.0})
     da = DiscreteAllocation({"A": 0.5, "B": 0.5}, prices, total_portfolio_value=100)
@@ -248,22 +279,8 @@ def test_lp_portfolio_skips_ecos_bb_when_cvxpy_removed_it(monkeypatch):
     assert requested["solver"] is None
 
 
-def test_lp_portfolio_still_defaults_to_ecos_bb_when_installed(monkeypatch):
-    requested = {}
-
-    def fake_solve(self, *args, **kwargs):
-        requested["solver"] = kwargs.get("solver")
-        raise SolverError("stop before a real solve")
-
-    monkeypatch.setattr(
-        "pypfopt.discrete_allocation._check_soft_dependencies",
-        lambda *args, **kwargs: True,
-    )
-    monkeypatch.setattr(
-        "pypfopt.discrete_allocation.cp.installed_solvers",
-        lambda: ["ECOS_BB", "OSQP"],
-    )
-    monkeypatch.setattr("pypfopt.discrete_allocation.cp.Problem.solve", fake_solve)
+def test_lp_portfolio_still_defaults_to_ecos_bb_when_installed(patched_lp_solve):
+    requested = patched_lp_solve(["ECOS_BB", "OSQP"])
 
     prices = pd.Series({"A": 10.0, "B": 20.0})
     da = DiscreteAllocation({"A": 0.5, "B": 0.5}, prices, total_portfolio_value=100)
@@ -274,7 +291,7 @@ def test_lp_portfolio_still_defaults_to_ecos_bb_when_installed(monkeypatch):
 
 
 def test_lp_portfolio_solves_when_ecos_imports_but_ecos_bb_is_unregistered(
-    monkeypatch,
+    patched_lp_solve,
 ):
     """Solve when the ecos check passes but cvxpy does not list ECOS_BB.
 
@@ -283,28 +300,15 @@ def test_lp_portfolio_solves_when_ecos_imports_but_ecos_bb_is_unregistered(
     so this fails there. Here the solver stays unset and a two-asset
     allocation solves.
     """
-    requested = {}
-    real_solve = cp.Problem.solve
-    real_installed_solvers = cp.installed_solvers
-
-    def solve_and_record(self, *args, **kwargs):
-        requested["solver"] = kwargs.get("solver")
-        return real_solve(self, *args, **kwargs)
 
     def installed_solvers_without_ecos_bb():
-        return [name for name in real_installed_solvers() if name != "ECOS_BB"]
+        return [
+            name
+            for name in patched_lp_solve.real_installed_solvers()
+            if name != "ECOS_BB"
+        ]
 
-    monkeypatch.setattr(
-        "pypfopt.discrete_allocation._check_soft_dependencies",
-        lambda *args, **kwargs: True,
-    )
-    monkeypatch.setattr(
-        "pypfopt.discrete_allocation.cp.installed_solvers",
-        installed_solvers_without_ecos_bb,
-    )
-    monkeypatch.setattr(
-        "pypfopt.discrete_allocation.cp.Problem.solve", solve_and_record
-    )
+    requested = patched_lp_solve(installed_solvers_without_ecos_bb, forward=True)
 
     prices = pd.Series({"A": 10.0, "B": 20.0})
     da = DiscreteAllocation({"A": 0.5, "B": 0.5}, prices, total_portfolio_value=1000)
