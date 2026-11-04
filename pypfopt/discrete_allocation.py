@@ -297,7 +297,7 @@ class DiscreteAllocation:
             print error analysis? Defaults to False.
         solver : str, optional
             the CVXPY solver to use (must support mixed-integer programs).
-            Defaults to "ECOS_BB" if ecos is installed, else None.
+            Defaults to "ECOS_BB" when that solver is installed, else None.
 
         Returns
         -------
@@ -306,7 +306,13 @@ class DiscreteAllocation:
             of funds leftover.
         """
         # todo 1.7.0: remove this defaulting behavior
-        if solver is None and _check_soft_dependencies("ecos", severity="none"):
+        # The ecos distribution can be present while cvxpy does not register
+        # ECOS_BB. Selecting that missing solver raises SolverError.
+        if (
+            solver is None
+            and _check_soft_dependencies("ecos", severity="none")
+            and "ECOS_BB" in cp.installed_solvers()
+        ):
             solver = "ECOS_BB"
             warn(
                 "The default solver for lp_portfolio will change from ECOS_BB to"
