@@ -5,6 +5,7 @@ from .black_litterman import (
 )
 from .cla import CLA
 from .discrete_allocation import DiscreteAllocation, get_latest_prices
+from .demand_supply import detect_demand_supply_zones
 from .efficient_frontier import (
     EfficientCDaR,
     EfficientCVaR,
@@ -23,6 +24,7 @@ __all__ = [
     "CLA",
     "get_latest_prices",
     "DiscreteAllocation",
+    "detect_demand_supply_zones",
     "EfficientFrontier",
     "EfficientSemivariance",
     "EfficientCVaR",
