@@ -78,6 +78,11 @@ class TestERCWeightsCCD:
         rc = w * (cov @ w)
         assert_allclose(rc, rc.mean() * np.ones(3), rtol=1e-6)
 
+    def test_raises_when_solver_does_not_converge(self):
+        cov = np.diag([0.01, 0.09])
+        with pytest.raises(RuntimeError, match="did not converge"):
+            _erc_weights_ccd(cov, max_iter=1)
+
     def test_equal_risk_contributions_negative_correlation(self):
         """Must converge to correct ERC even with negative off-diagonal entries."""
         rng = np.random.default_rng(1)
