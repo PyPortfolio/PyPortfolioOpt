@@ -11,7 +11,7 @@ from .efficient_frontier import (
     EfficientFrontier,
     EfficientSemivariance,
 )
-from .hierarchical_portfolio import HRPOpt
+from .hierarchical_portfolio import ERCOpt, HRPOpt
 from .risk_models import CovarianceShrinkage
 
 __version__ = "1.6.0"
@@ -27,6 +27,7 @@ __all__ = [
     "EfficientSemivariance",
     "EfficientCVaR",
     "EfficientCDaR",
+    "ERCOpt",
     "HRPOpt",
     "CovarianceShrinkage",
 ]
