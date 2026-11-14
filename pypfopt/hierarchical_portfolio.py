@@ -288,6 +288,8 @@ def _erc_weights_ccd(cov: np.ndarray, tol: float = 1e-12, max_iter: int = 500) -
             w[i] = (-cross + np.sqrt(max(disc, 0.0))) / (2.0 * a_ii)
         if np.max(np.abs(w - w_prev)) < tol:
             break
+    else:
+        raise RuntimeError(f"ERC solver did not converge after {max_iter} iterations")
 
     w /= w.sum()
     return w
@@ -403,6 +405,11 @@ class ERCOpt(BaseOptimizer):
             Convergence tolerance, default 1e-12.
         max_iter : int, optional
             Maximum CCD iterations, default 500.
+
+        Raises
+        ------
+        RuntimeError
+            If the solver does not converge within ``max_iter`` iterations.
 
         Returns
         -------
