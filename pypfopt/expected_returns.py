@@ -54,7 +54,27 @@ def returns_from_prices(prices, log_returns=False):
     -------
     pd.DataFrame
         (daily) returns
+
+    Warns
+    -----
+    UserWarning
+        If an observed price is zero or negative. Percentage returns from such
+        prices can be misleading; consider absolute price changes instead.
     """
+    nonpositive = prices.le(0).fillna(False).to_numpy()
+    if nonpositive.any():
+        position = np.argwhere(nonpositive)[0]
+        date = prices.index[position[0]]
+        asset = (
+            prices.name if isinstance(prices, pd.Series) else prices.columns[position[1]]
+        )
+        warnings.warn(
+            f"Non-positive price for asset {asset!r} at {date!r}. "
+            "Percentage returns may be misleading. Consider absolute price changes "
+            "for instruments that can trade at or below zero.",
+            UserWarning,
+            stacklevel=2,
+        )
     if log_returns:
         returns = np.log(1 + prices.pct_change(fill_method=None)).dropna(how="all")
     else:
