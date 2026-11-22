@@ -307,6 +307,7 @@ class BlackLittermanModel(BaseOptimizer):
         self.risk_aversion = risk_aversion
 
     def _set_omega(self, omega, view_confidences):
+        self._active_views = None
         if isinstance(omega, pd.DataFrame):
             self.omega = omega.values
         elif isinstance(omega, np.ndarray):
@@ -336,6 +337,13 @@ class BlackLittermanModel(BaseOptimizer):
                 self.tau,
                 self.risk_aversion,
             )
+            # Keep the public omega matrix and all view labels intact. A
+            # zero-confidence Idzorek view conveys no information; a fixed,
+            # finite uncertainty is only a placeholder, not its likelihood.
+            active = np.asarray(view_confidences[: len(self.Q)]).reshape(-1) != 0
+            if not active.all():
+                self._active_views = active
+                self._idzorek_omega = self.omega
         elif omega is None or omega == "default":
             self.omega = BlackLittermanModel.default_omega(
                 self.cov_matrix, self.P, self.tau
@@ -414,6 +422,31 @@ class BlackLittermanModel(BaseOptimizer):
 
         return np.diag(view_omegas)
 
+    def _posterior_view_system(self):
+        # Before the first solve, respect an explicit replacement of omega
+        # or a modification to a placeholder's row or column.
+        if self._A is None and self._active_views is not None:
+            inactive = ~self._active_views
+            if self.omega is not self._idzorek_omega or (
+                np.count_nonzero(self.omega[inactive, :]) != inactive.sum()
+                or np.count_nonzero(self.omega[:, inactive]) != inactive.sum()
+                or not np.all(self.omega.diagonal()[inactive] == 1e6)
+            ):
+                self._active_views = None
+
+        # Keep the legacy full-view caches. Only posterior solves see the
+        # reduced system; other consumers must not see a changed shape.
+        if self._tau_sigma_P is None:
+            self._tau_sigma_P = self.tau * self.cov_matrix @ self.P.T
+        if self._A is None:
+            self._A = self.P @ self._tau_sigma_P + self.omega
+
+        if self._active_views is None:
+            return self.P, self.Q, self._tau_sigma_P, self._A
+        active = self._active_views
+        return (self.P[active], self.Q[active], self._tau_sigma_P[:, active],
+                self._A[np.ix_(active, active)])
+
     def bl_returns(self):
         """
         Calculate the posterior estimate of the returns vector,
@@ -425,21 +458,20 @@ class BlackLittermanModel(BaseOptimizer):
             posterior returns vector
         """
 
-        if self._tau_sigma_P is None:
-            self._tau_sigma_P = self.tau * self.cov_matrix @ self.P.T
+        picking, views, cross, system = self._posterior_view_system()
+        if not len(views):
+            return pd.Series(self.pi.flatten(), index=self.tickers)
 
-        # Solve the linear system Ax = b to avoid inversion
-        if self._A is None:
-            self._A = (self.P @ self._tau_sigma_P) + self.omega
-        b = self.Q - self.P @ self.pi
+        # Solve the linear system Ax = b to avoid inversion.
+        b = views - picking @ self.pi
         try:
-            solution = np.linalg.solve(self._A, b)
+            solution = np.linalg.solve(system, b)
         except np.linalg.LinAlgError as e:
             if "Singular matrix" in str(e):
-                solution = np.linalg.lstsq(self._A, b, rcond=None)[0]
+                solution = np.linalg.lstsq(system, b, rcond=None)[0]
             else:
                 raise e
-        post_rets = self.pi + self._tau_sigma_P @ solution
+        post_rets = self.pi + cross @ solution
         return pd.Series(post_rets.flatten(), index=self.tickers)
 
     def bl_cov(self):
@@ -454,20 +486,20 @@ class BlackLittermanModel(BaseOptimizer):
         pd.DataFrame
             posterior covariance matrix
         """
-        if self._tau_sigma_P is None:
-            self._tau_sigma_P = self.tau * self.cov_matrix @ self.P.T
-        if self._A is None:
-            self._A = (self.P @ self._tau_sigma_P) + self.omega
+        _, views, cross, system = self._posterior_view_system()
+        if not len(views):
+            posterior_cov = self.cov_matrix + self.tau * self.cov_matrix
+            return pd.DataFrame(posterior_cov, index=self.tickers, columns=self.tickers)
 
-        b = self._tau_sigma_P.T
+        b = cross.T
         try:
-            M_solution = np.linalg.solve(self._A, b)
+            M_solution = np.linalg.solve(system, b)
         except np.linalg.LinAlgError as e:
             if "Singular matrix" in str(e):
-                M_solution = np.linalg.lstsq(self._A, b, rcond=None)[0]
+                M_solution = np.linalg.lstsq(system, b, rcond=None)[0]
             else:
                 raise e
-        M = self.tau * self.cov_matrix - self._tau_sigma_P @ M_solution
+        M = self.tau * self.cov_matrix - cross @ M_solution
         posterior_cov = self.cov_matrix + M
         return pd.DataFrame(posterior_cov, index=self.tickers, columns=self.tickers)
 
