@@ -177,18 +177,35 @@ class DiscreteAllocation:
         self.weights.sort(key=lambda x: x[1], reverse=True)
 
         # If portfolio contains shorts
-        if self.weights[-1][1] < 0:
-            longs = {t: w for t, w in self.weights if w >= 0}
+        if self.weights and self.weights[-1][1] < 0:
+            longs = {t: w for t, w in self.weights if w > 0}
             shorts = {t: -w for t, w in self.weights if w < 0}
+
+            short_total_weight = sum(shorts.values())
+            shorts = {t: w / short_total_weight for t, w in shorts.items()}
+            short_val = self.total_portfolio_value * self.short_ratio
+
+            if not longs:
+                if verbose:
+                    print("\nAllocating short sub-portfolio...")
+                da2 = DiscreteAllocation(
+                    shorts,
+                    self.latest_prices[shorts.keys()],
+                    total_portfolio_value=short_val,
+                )
+                short_alloc, short_leftover = da2.greedy_portfolio()
+                self.allocation = {t: -w for t, w in short_alloc.items()}
+                self.allocation = self._remove_zero_positions(self.allocation)
+                return (
+                    self.allocation,
+                    (self.total_portfolio_value - short_val) + short_leftover,
+                )
 
             # Make them sum to one
             long_total_weight = sum(longs.values())
-            short_total_weight = sum(shorts.values())
             longs = {t: w / long_total_weight for t, w in longs.items()}
-            shorts = {t: w / short_total_weight for t, w in shorts.items()}
 
             # Construct long-only discrete allocations for each
-            short_val = self.total_portfolio_value * self.short_ratio
             long_val = self.total_portfolio_value
             if reinvest:
                 long_val += short_val
@@ -318,17 +335,34 @@ class DiscreteAllocation:
         # end todo
 
         if any([w < 0 for _, w in self.weights]):
-            longs = {t: w for t, w in self.weights if w >= 0}
+            longs = {t: w for t, w in self.weights if w > 0}
             shorts = {t: -w for t, w in self.weights if w < 0}
+
+            short_total_weight = sum(shorts.values())
+            shorts = {t: w / short_total_weight for t, w in shorts.items()}
+            short_val = self.total_portfolio_value * self.short_ratio
+
+            if not longs:
+                if verbose:
+                    print("\nAllocating short sub-portfolio:")
+                da2 = DiscreteAllocation(
+                    shorts,
+                    self.latest_prices[shorts.keys()],
+                    total_portfolio_value=short_val,
+                )
+                short_alloc, short_leftover = da2.lp_portfolio(solver=solver)
+                self.allocation = {t: -w for t, w in short_alloc.items()}
+                self.allocation = self._remove_zero_positions(self.allocation)
+                return (
+                    self.allocation,
+                    (self.total_portfolio_value - short_val) + short_leftover,
+                )
 
             # Make them sum to one
             long_total_weight = sum(longs.values())
-            short_total_weight = sum(shorts.values())
             longs = {t: w / long_total_weight for t, w in longs.items()}
-            shorts = {t: w / short_total_weight for t, w in shorts.items()}
 
             # Construct long-only discrete allocations for each
-            short_val = self.total_portfolio_value * self.short_ratio
             long_val = self.total_portfolio_value
             if reinvest:
                 long_val += short_val

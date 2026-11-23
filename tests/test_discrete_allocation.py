@@ -454,3 +454,31 @@ def test_allocation_errors():
     latest_prices.iloc[0] = np.nan
     with pytest.raises(TypeError):
         DiscreteAllocation(w, latest_prices)
+
+
+def test_short_only_allocation():
+    prices = pd.Series({"AAPL": 150.0, "MSFT": 250.0})
+    weights = {"AAPL": -0.6, "MSFT": -0.4}
+
+    da = DiscreteAllocation(weights, prices, total_portfolio_value=10000)
+    alloc_g, leftover_g = da.greedy_portfolio()
+    assert alloc_g == {"AAPL": -40, "MSFT": -16}
+    assert leftover_g == 0.0
+
+    alloc_lp, leftover_lp = da.lp_portfolio()
+    assert alloc_lp == {"AAPL": -40, "MSFT": -16}
+    assert leftover_lp == 0.0
+
+
+def test_zero_long_with_shorts_allocation():
+    prices = pd.Series({"AAPL": 150.0, "MSFT": 250.0})
+    weights = {"AAPL": 0.0, "MSFT": -1.0}
+
+    da = DiscreteAllocation(weights, prices, total_portfolio_value=10000)
+    alloc_g, leftover_g = da.greedy_portfolio()
+    assert alloc_g == {"MSFT": -40}
+    assert leftover_g == 0.0
+
+    alloc_lp, leftover_lp = da.lp_portfolio()
+    assert alloc_lp == {"MSFT": -40}
+    assert leftover_lp == 0.0
